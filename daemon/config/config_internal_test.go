@@ -3,7 +3,7 @@ package config
 import (
 	"testing"
 
-	h "github.com/helto4real/MyHome/helpers/test"
+	h "github.com/helto4real/go-daemon/daemon/test"
 )
 
 var yml = `

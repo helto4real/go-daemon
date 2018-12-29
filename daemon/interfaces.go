@@ -40,4 +40,5 @@ type ApplicationDaemonRunner interface {
 // DaemonApplication represents an application
 type DaemonApplication interface {
 	Initialize(helper DaemonAppHelper) bool
+	NewInstance() DaemonApplication
 }
