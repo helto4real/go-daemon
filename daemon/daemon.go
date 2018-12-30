@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 
 	"github.com/helto4real/go-daemon/daemon/config"
 	"github.com/helto4real/go-hassclient/client"
@@ -36,6 +37,7 @@ type ApplicationDaemon struct {
 	commandChannel chan DaemonCommand
 	applications   []DaemonApplication
 	availableApps  map[string]interface{}
+	stateListeners map[string][]chan client.HassEntity
 }
 
 // Start the daemon, use in main function
@@ -48,6 +50,7 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant,
 	a.configPath = configPath
 	a.applications = []DaemonApplication{}
 	a.availableApps = availableApps
+	a.stateListeners = make(map[string][]chan client.HassEntity)
 	configuration := config.NewConfiguration(filepath.Join(configPath, "go-daemon.yaml"))
 	conf, err := configuration.Open()
 
@@ -70,9 +73,30 @@ func (a *ApplicationDaemon) Stop() {
 
 }
 
-// RegisterApplication registers a new daemon application in the appdaemon
-func (a *ApplicationDaemon) RegisterApplication(app DaemonApplication) {
+// ListenState start listen to state changes from entity
+//
+// Any changes is reported back to the provided channel
+func (a *ApplicationDaemon) ListenState(entity string, stateChannel chan client.HassEntity) {
+	// Convert to lower case if some noob wrote it wrong
+	entityLower := strings.ToLower(entity)
 
+	stateChannels, ok := a.stateListeners[entityLower]
+	if !ok {
+		// First time we need to create the array
+		a.stateListeners[entityLower] = []chan client.HassEntity{stateChannel}
+		return
+	} else {
+		// We have existing, make sure channel not registered already
+		for _, sChannel := range stateChannels {
+			if sChannel == stateChannel {
+				// Allreade registered so return
+				log.Printf("Listen state already registered on %s on current channel", entity)
+				return
+			}
+		}
+	}
+	// Add the new channel
+	a.stateListeners[entityLower] = append(stateChannels, stateChannel)
 }
 
 func NewApplicationDaemon() ApplicationDaemonRunner {
@@ -139,12 +163,30 @@ func (a *ApplicationDaemon) receiveHassLoop() {
 					commandChannel <- StopApplications
 				}
 			}
-		case _, mc := <-hassEntityChannel:
+		case entity, mc := <-hassEntityChannel:
 			if mc {
-				//log.Println("Got entity: ", status)
+				if entity.Old.State != "" {
+					a.handleEntity(entity)
+				}
+
 			}
 		case <-a.cancelContext.Done():
 			return
+		}
+	}
+}
+
+func (a *ApplicationDaemon) handleEntity(entity *c.HassEntity) {
+	// Check listen to status changes
+	sl, exists := a.stateListeners[entity.ID]
+	if exists {
+		for _, ch := range sl {
+			select {
+			case ch <- *entity:
+			default:
+				// This happens if app has not taken care of last sent message
+				log.Printf("Channel full for entity: %s", entity.ID)
+			}
 		}
 	}
 }

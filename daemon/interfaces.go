@@ -26,6 +26,11 @@ type DaemonAppHelper interface {
 
 	// Toggle toggles an entity with no attributes
 	Toggle(entity string)
+
+	// ListenState start listen to state changes from entity
+	//
+	// Any changes is reported back to the provided channel
+	ListenState(entity string, stateChannel chan client.HassEntity)
 }
 
 // DaemonApplication represents an application
@@ -34,7 +39,6 @@ type ApplicationDaemonRunner interface {
 	Start(configPath string, hassClient c.HomeAssistant, availableApps map[string]interface{}) bool
 	// Stop daemon only use in main
 	Stop()
-	RegisterApplication(app DaemonApplication)
 }
 
 // DaemonApplication represents an application

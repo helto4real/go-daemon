@@ -20,13 +20,21 @@ Note:
 package app
 
 import (
+	"context"
+	"log"
+
 	d "github.com/helto4real/go-daemon/daemon"
+	c "github.com/helto4real/go-hassclient/client"
 )
 
 // ExampleApp implements an go-appdaemon app
+// This app takes a light and logs its state changes
 type ExampleApp struct {
-	deamon d.DaemonAppHelper
-	cfg    d.DeamonAppConfig
+	deamon        d.DaemonAppHelper
+	cfg           d.DeamonAppConfig
+	state         chan c.HassEntity
+	cancel        context.CancelFunc
+	cancelContext context.Context
 }
 
 // Initialize is called when an application is started
@@ -37,14 +45,47 @@ func (a *ExampleApp) Initialize(helper d.DaemonAppHelper, config d.DeamonAppConf
 	// Save the daemon helper and config to variables for later use
 	a.deamon = helper
 	a.cfg = config
+	// Make the channel all state changes we listen too will be sent to
+	a.state = make(chan c.HassEntity)
 
-	a.deamon.Toggle(a.cfg.Properties["tomas_room_light"])
+	// Make a cancelation context to use when the application need to close
+	ctx, cancel := context.WithCancel(context.Background())
+	a.cancel = cancel
+	a.cancelContext = ctx
+
+	// Listen to state changes to the entity configured as "tomas_room_light"
+	// in the config yaml file
+	a.deamon.ListenState(a.cfg.Properties["tomas_room_light"], a.state)
+
+	// Do state change logic in own go-routine and return from initializaiotn
+	// Initialize function should never block
+	go a.handleStateChanges()
+
 	return true
+}
+
+func (a *ExampleApp) handleStateChanges() {
+
+	for {
+		select {
+		case entity, ok := <-a.state:
+			if ok {
+				if entity.New.State != entity.Old.State {
+					// Only changed states handled
+					log.Printf("State of light changed to: %s", entity.New.State)
+				}
+			}
+		// Just listen to the global cancelation context for nwo
+		case <-a.cancelContext.Done():
+			return
+		}
+	}
 }
 
 // Cancel the application during shutdown the go-appdaemon
 //
 // Implement any cancelation logic here if needed
 func (a *ExampleApp) Cancel() {
-
+	// Cancel the goroutine select
+	a.cancel()
 }

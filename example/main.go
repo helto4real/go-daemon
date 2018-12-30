@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	log.Println("Starting go-daemon..")
 	osSignal := make(chan os.Signal, 1)
 	daemon := daemon.NewApplicationDaemon()
 	hass := client.NewHassClient()
