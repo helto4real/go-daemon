@@ -46,16 +46,17 @@ func (a *ExampleApp) Initialize(helper d.DaemonAppHelper, config d.DeamonAppConf
 	a.deamon = helper
 	a.cfg = config
 	// Make the channel all state changes we listen too will be sent to
-	a.state = make(chan c.HassEntity)
+	a.state = make(chan c.HassEntity, 1)
 
 	// Make a cancelation context to use when the application need to close
 	ctx, cancel := context.WithCancel(context.Background())
 	a.cancel = cancel
 	a.cancelContext = ctx
 
-	// Listen to state changes to the entity configured as "tomas_room_light"
+	// Listen to state changes to the entity configured
 	// in the config yaml file
 	a.deamon.ListenState(a.cfg.Properties["tomas_room_light"], a.state)
+	a.deamon.ListenState(a.cfg.Properties["tomas_motion_sensor"], a.state)
 
 	// Do state change logic in own go-routine and return from initializaiotn
 	// Initialize function should never block
@@ -72,10 +73,12 @@ func (a *ExampleApp) handleStateChanges() {
 			if ok {
 				if entity.New.State != entity.Old.State {
 					// Only changed states handled
-					log.Printf("State of light changed to: %s", entity.New.State)
+					log.Printf("State of %s changed from %s to: %s", entity.ID, entity.Old.State, entity.New.State)
+				} else {
+					log.Printf("State of %s same from %s to: %s", entity.ID, entity.Old.State, entity.New.State)
 				}
 			}
-		// Just listen to the global cancelation context for nwo
+		// Listen to the cancelation context and leave when canceled
 		case <-a.cancelContext.Done():
 			return
 		}

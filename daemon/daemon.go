@@ -190,6 +190,7 @@ func (a *ApplicationDaemon) handleEntity(entity *c.HassEntity) {
 		}
 	}
 }
+
 func (a *ApplicationDaemon) applicationDaemonLoop() {
 	commandChannel := a.commandChannel
 	for {
@@ -220,7 +221,7 @@ func (a *ApplicationDaemon) loadDaemonApplications() {
 func (a *ApplicationDaemon) unloadDaemonApplications() {
 	log.Println("Unloading applications...")
 	// Remove all subscriptions here
-
+	a.stateListeners = make(map[string][]chan client.HassEntity)
 	// Remove the applications
 	if len(a.applications) > 0 {
 		for _, app := range a.applications {
