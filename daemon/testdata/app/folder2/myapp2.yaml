@@ -1,0 +1,11 @@
+testapp2_instance:
+  app: testapp2
+  properties:
+    theswitch: 'switch.switch1'
+    thelight: 'light.light1'
+
+testapp2_instance2:
+  app: testapp2
+  properties:
+    theswitch: 'switch.switch1'
+    thelight: 'light.light1'

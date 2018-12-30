@@ -31,7 +31,7 @@ type DaemonAppHelper interface {
 // DaemonApplication represents an application
 type ApplicationDaemonRunner interface {
 	// Start daemon only use in main
-	Start(configPath string, hassClient c.HomeAssistant) bool
+	Start(configPath string, hassClient c.HomeAssistant, availableApps map[string]interface{}) bool
 	// Stop daemon only use in main
 	Stop()
 	RegisterApplication(app DaemonApplication)
@@ -39,6 +39,6 @@ type ApplicationDaemonRunner interface {
 
 // DaemonApplication represents an application
 type DaemonApplication interface {
-	Initialize(helper DaemonAppHelper) bool
-	NewInstance() DaemonApplication
+	Initialize(helper DaemonAppHelper, config DeamonAppConfig) bool
+	Cancel()
 }

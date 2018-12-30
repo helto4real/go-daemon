@@ -6,11 +6,20 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 
 	"github.com/helto4real/go-daemon/daemon/config"
 	"github.com/helto4real/go-hassclient/client"
 	c "github.com/helto4real/go-hassclient/client"
 	yaml "gopkg.in/yaml.v2"
+)
+
+type DaemonCommand int
+
+const (
+	StartApplications   DaemonCommand = 0
+	StopApplications    DaemonCommand = 1
+	ReStartApplications DaemonCommand = 2
 )
 
 type DeamonAppConfig struct {
@@ -19,21 +28,26 @@ type DeamonAppConfig struct {
 }
 
 type ApplicationDaemon struct {
-	hassClient    c.HomeAssistant
-	config        *config.Config
-	cancel        context.CancelFunc
-	cancelContext context.Context
-	configPath    string
+	hassClient     c.HomeAssistant
+	config         *config.Config
+	cancel         context.CancelFunc
+	cancelContext  context.Context
+	configPath     string
+	commandChannel chan DaemonCommand
+	applications   []DaemonApplication
+	availableApps  map[string]interface{}
 }
 
 // Start the daemon, use in main function
-func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant) bool {
+func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant, availableApps map[string]interface{}) bool {
 	a.hassClient = hassClient
 	ctx, cancel := context.WithCancel(context.Background())
-
+	a.commandChannel = make(chan DaemonCommand)
 	a.cancelContext = ctx
 	a.cancel = cancel
 	a.configPath = configPath
+	a.applications = []DaemonApplication{}
+	a.availableApps = availableApps
 	configuration := config.NewConfiguration(filepath.Join(configPath, "go-daemon.yaml"))
 	conf, err := configuration.Open()
 
@@ -42,7 +56,10 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant)
 		return false
 	}
 	a.config = conf
+	go a.receiveHassLoop()
+	go a.applicationDaemonLoop()
 	a.hassClient.Start(conf.HomeAssistant.IP, conf.HomeAssistant.SSL, conf.HomeAssistant.Token)
+
 	return true
 }
 
@@ -93,6 +110,84 @@ func (a *ApplicationDaemon) Toggle(entity string) {
 	a.hassClient.CallService("toggle", map[string]string{"entity_id": entity})
 }
 
+func (a *ApplicationDaemon) NewDaemonApp(appName string) (DaemonApplication, bool) {
+	if f, exist := a.availableApps[appName]; exist {
+		instance := reflect.New(reflect.TypeOf(f)).Interface()
+		dApp, ok := instance.(DaemonApplication)
+		if ok {
+			return dApp, true
+		}
+	}
+	return nil, false
+}
+
+func (a *ApplicationDaemon) receiveHassLoop() {
+	hassStatusChannel := a.hassClient.GetStatusChannel()
+	hassEntityChannel := a.hassClient.GetEntityChannel()
+	commandChannel := a.commandChannel
+	for {
+		select {
+		case status, mc := <-hassStatusChannel:
+			if mc {
+				if status {
+					// We got connected
+					//a.loadDaemonApplications()
+					commandChannel <- StartApplications
+				} else {
+					// We disconnected
+					//a.unloadDaemonApplications()
+					commandChannel <- StopApplications
+				}
+			}
+		case _, mc := <-hassEntityChannel:
+			if mc {
+				//log.Println("Got entity: ", status)
+			}
+		case <-a.cancelContext.Done():
+			return
+		}
+	}
+}
+func (a *ApplicationDaemon) applicationDaemonLoop() {
+	commandChannel := a.commandChannel
+	for {
+		select {
+
+		case command, mc := <-commandChannel:
+			if mc {
+				switch command {
+				case StartApplications:
+					a.loadDaemonApplications()
+				case StopApplications:
+					a.unloadDaemonApplications()
+				}
+			}
+		case <-a.cancelContext.Done():
+			return
+		}
+	}
+}
+
+func (a *ApplicationDaemon) loadDaemonApplications() {
+	log.Println("Loading applications...")
+	if len(a.applications) > 0 {
+		a.unloadDaemonApplications()
+	}
+	a.applications = a.instanceAllApplications()
+}
+func (a *ApplicationDaemon) unloadDaemonApplications() {
+	log.Println("Unloading applications...")
+	// Remove all subscriptions here
+
+	// Remove the applications
+	if len(a.applications) > 0 {
+		for _, app := range a.applications {
+			app.Cancel()
+		}
+		// Get new instance of empty list
+		a.applications = []DaemonApplication{}
+	}
+}
 func (a *ApplicationDaemon) getAllApplicationConfigFilePaths() []string {
 	fileList := []string{}
 	pathAppDir := filepath.Join(a.configPath, "app")
@@ -125,4 +220,28 @@ func (a *ApplicationDaemon) getConfigFromFile(path string) (map[string]DeamonApp
 		return nil, false
 	}
 	return i, true
+}
+
+func (a *ApplicationDaemon) instanceAllApplications() []DaemonApplication {
+	applicationInstances := []DaemonApplication{}
+
+	allApplicationConfigs := a.getAllApplicationConfigFilePaths()
+
+	for _, configFile := range allApplicationConfigs {
+		cfgList, ok := a.getConfigFromFile(configFile)
+		if ok {
+			for _, appCfg := range cfgList {
+				app, ok := a.NewDaemonApp(appCfg.App)
+				if ok {
+					log.Println("Loading application: ", appCfg.App)
+					applicationInstances = append(applicationInstances, app)
+					app.Initialize(a, appCfg)
+				} else {
+					log.Printf("Did not find the application {%s}, please check config in [%s] ", appCfg.App, configFile)
+				}
+			}
+		}
+
+	}
+	return applicationInstances
 }

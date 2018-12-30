@@ -1,0 +1,5 @@
+exampleapp_instance:
+  app: example_app
+  properties:
+    tomas_room_light: 'light.tomas_rum_fonster'
+  
