@@ -22,6 +22,7 @@ package app
 import (
 	"context"
 	"log"
+	"time"
 
 	d "github.com/helto4real/go-daemon/daemon"
 	c "github.com/helto4real/go-hassclient/client"
@@ -33,6 +34,8 @@ type ExampleApp struct {
 	deamon        d.DaemonAppHelper
 	cfg           d.DeamonAppConfig
 	state         chan c.HassEntity
+	sunset        chan bool
+	sunrise       chan bool
 	cancel        context.CancelFunc
 	cancelContext context.Context
 }
@@ -47,6 +50,9 @@ func (a *ExampleApp) Initialize(helper d.DaemonAppHelper, config d.DeamonAppConf
 	a.cfg = config
 	// Make the channel all state changes we listen too will be sent to
 	a.state = make(chan c.HassEntity, 1)
+	// Make the sunset and sunrise channels
+	a.sunset = make(chan bool, 1)
+	a.sunrise = make(chan bool, 1)
 
 	// Make a cancelation context to use when the application need to close
 	ctx, cancel := context.WithCancel(context.Background())
@@ -56,8 +62,10 @@ func (a *ExampleApp) Initialize(helper d.DaemonAppHelper, config d.DeamonAppConf
 	// Listen to state changes to the entity configured
 	// in the config yaml file
 	a.deamon.ListenState(a.cfg.Properties["tomas_room_light"], a.state)
-	a.deamon.ListenState(a.cfg.Properties["tomas_motion_sensor"], a.state)
-
+	//a.deamon.ListenState(a.cfg.Properties["tomas_motion_sensor"], a.state)
+	//a.deamon.ListenState("sun.sun", a.state)
+	a.deamon.AtSunset(time.Duration(-1)*time.Hour, a.sunset)
+	a.deamon.AtSunrise(time.Duration(30)*time.Minute, a.sunrise)
 	// Do state change logic in own go-routine and return from initializaiotn
 	// Initialize function should never block
 	go a.handleStateChanges()
@@ -71,6 +79,7 @@ func (a *ExampleApp) handleStateChanges() {
 		select {
 		case entity, ok := <-a.state:
 			if ok {
+				log.Print(entity)
 				if entity.New.State != entity.Old.State {
 					// Only changed states handled
 					log.Printf("State of %s changed from %s to: %s", entity.ID, entity.Old.State, entity.New.State)
@@ -78,6 +87,14 @@ func (a *ExampleApp) handleStateChanges() {
 					log.Printf("State of %s same from %s to: %s", entity.ID, entity.Old.State, entity.New.State)
 				}
 			}
+		case <-a.sunrise:
+			log.Println("SUNRISE!")
+			// Reschedule
+			a.deamon.AtSunrise(time.Duration(30)*time.Minute, a.sunrise)
+		case <-a.sunset:
+			log.Println("SUNSET!")
+			// Reschedule
+			a.deamon.AtSunset(time.Duration(-1)*time.Hour, a.sunset)
 		// Listen to the cancelation context and leave when canceled
 		case <-a.cancelContext.Done():
 			return

@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"time"
 
 	"github.com/helto4real/go-hassclient/client"
 	c "github.com/helto4real/go-hassclient/client"
@@ -31,6 +32,16 @@ type DaemonAppHelper interface {
 	//
 	// Any changes is reported back to the provided channel
 	ListenState(entity string, stateChannel chan client.HassEntity)
+
+	// AtSunset sends a message on provided channel at sunset
+	//
+	// You can set a positive or negative offset from sunset
+	AtSunset(offset time.Duration, sunsetChannel chan bool) *time.Timer
+
+	// AtSunrise sends a message on provided channel at sunset
+	//
+	// You can set a positive or negative offset from sunset
+	AtSunrise(offset time.Duration, sunriseChannel chan bool) *time.Timer
 }
 
 // DaemonApplication represents an application

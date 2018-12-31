@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/helto4real/go-daemon/daemon/config"
 	"github.com/helto4real/go-hassclient/client"
@@ -71,6 +72,80 @@ func (a *ApplicationDaemon) Stop() {
 	a.cancel()
 	a.hassClient.Stop()
 
+}
+
+// AtSunset sends a message on provided channel at sunset
+//
+// You can set a positive or negative offset from sunset
+func (a *ApplicationDaemon) AtSunset(offset time.Duration, sunsetChannel chan bool) *time.Timer {
+	sun, ok := a.GetEntity("sun.sun")
+	if !ok {
+		log.Println("Failed to get sun.sun entity, cant set AtSunset!")
+		return nil
+	}
+
+	sunset, ok := sun.New.Attributes["next_setting"]
+	if !ok {
+		log.Println("Failed to get the attribute 'next_setting', catn set AtSunset!")
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339, sunset)
+
+	if err != nil {
+		log.Print("Failed to parse date", sunset)
+		return nil
+	}
+	toffset := t.Add(offset)
+	if toffset.Before(time.Now()) {
+		// In some situations the time can be less that current time if using
+		// negative offsets and the rescheduling is done in the right after
+		// this event is set, we just add a day to the time if that happens
+		toffset = toffset.Add(time.Hour * 24)
+	}
+	// Calculate duration until sunset
+	dur := toffset.Sub(time.Now())
+
+	log.Printf("Next sunset event at %v, in %v hours and %v minutes", toffset, dur.Hours(), dur.Minutes())
+	return time.AfterFunc(dur, func() {
+		sunsetChannel <- true
+	})
+}
+
+// AtSunrise sends a message on provided channel at sunset
+//
+// You can set a positive or negative offset from sunset
+func (a *ApplicationDaemon) AtSunrise(offset time.Duration, sunriseChannel chan bool) *time.Timer {
+	sun, ok := a.GetEntity("sun.sun")
+	if !ok {
+		log.Println("Failed to get sun.sun entity, cant set AtSunrise!")
+		return nil
+	}
+
+	sunrise, ok := sun.New.Attributes["next_rising"]
+	if !ok {
+		log.Println("Failed to get the attribute 'next_rising', catn set AtSunrise!")
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339, sunrise)
+
+	if err != nil {
+		log.Print("Failed to parse date", sunrise)
+		return nil
+	}
+	toffset := t.Add(offset)
+	if toffset.Before(time.Now()) {
+		// In some situations the time can be less that current time if using
+		// negative offsets and the rescheduling is done in the right after
+		// this event is set, we just add a day to the time if that happens
+		toffset = toffset.Add(time.Hour * 24)
+	}
+	// Calculate duration until sunset
+	dur := toffset.Sub(time.Now())
+
+	log.Printf("Next surise event at %v, in %v hours and %v minutes", toffset, dur.Hours(), dur.Minutes())
+	return time.AfterFunc(dur, func() {
+		sunriseChannel <- true
+	})
 }
 
 // ListenState start listen to state changes from entity
