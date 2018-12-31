@@ -21,11 +21,13 @@ package app
 
 import (
 	"context"
-	"log"
+
 	"time"
 
 	d "github.com/helto4real/go-daemon/daemon"
+	"github.com/helto4real/go-hassclient/client"
 	c "github.com/helto4real/go-hassclient/client"
+	"github.com/sirupsen/logrus"
 )
 
 // ExampleApp implements an go-appdaemon app
@@ -38,6 +40,7 @@ type ExampleApp struct {
 	sunrise       chan bool
 	cancel        context.CancelFunc
 	cancelContext context.Context
+	timer         *time.Timer
 }
 
 // Initialize is called when an application is started
@@ -61,15 +64,15 @@ func (a *ExampleApp) Initialize(helper d.DaemonAppHelper, config d.DeamonAppConf
 
 	// Listen to state changes to the entity configured
 	// in the config yaml file
-	a.deamon.ListenState(a.cfg.Properties["tomas_room_light"], a.state)
-	//a.deamon.ListenState(a.cfg.Properties["tomas_motion_sensor"], a.state)
+	//a.deamon.ListenState(a.cfg.Properties["tomas_room_light"], a.state)
+	a.deamon.ListenState(a.cfg.Properties["tomas_motion_sensor"], a.state)
 	//a.deamon.ListenState("sun.sun", a.state)
 	a.deamon.AtSunset(time.Duration(-1)*time.Hour, a.sunset)
 	a.deamon.AtSunrise(time.Duration(30)*time.Minute, a.sunrise)
 	// Do state change logic in own go-routine and return from initializaiotn
 	// Initialize function should never block
 	go a.handleStateChanges()
-
+	log.Println("Example app initialized!")
 	return true
 }
 
@@ -78,14 +81,11 @@ func (a *ExampleApp) handleStateChanges() {
 	for {
 		select {
 		case entity, ok := <-a.state:
-			if ok {
-				log.Print(entity)
-				if entity.New.State != entity.Old.State {
-					// Only changed states handled
-					log.Printf("State of %s changed from %s to: %s", entity.ID, entity.Old.State, entity.New.State)
-				} else {
-					log.Printf("State of %s same from %s to: %s", entity.ID, entity.Old.State, entity.New.State)
-				}
+			if !ok {
+				return
+			}
+			if entity.New.State != entity.Old.State {
+				a.handleEntityState(entity)
 			}
 		case <-a.sunrise:
 			log.Println("SUNRISE!")
@@ -102,10 +102,39 @@ func (a *ExampleApp) handleStateChanges() {
 	}
 }
 
+func (a *ExampleApp) handleEntityState(entity client.HassEntity) {
+	motionsensor := a.cfg.Properties["tomas_motion_sensor"]
+	light := a.cfg.Properties["tomas_room_light"]
+
+	if entity.ID == motionsensor {
+		if entity.New.State == "on" {
+
+			a.deamon.TurnOn(light)
+			if a.timer != nil {
+				log.Printf("Retting timer off to %v", time.Now().Add(time.Minute*2).Local())
+				a.timer.Reset(time.Minute * 2)
+			} else {
+				log.Printf("Setting timer off to %v", time.Now().Add(time.Minute*2).Local())
+				// Call turn off in 2 minute
+				a.timer = time.AfterFunc(time.Minute*2, func() {
+					a.deamon.TurnOff(light)
+				})
+			}
+
+		}
+	}
+}
+
 // Cancel the application during shutdown the go-appdaemon
 //
 // Implement any cancelation logic here if needed
 func (a *ExampleApp) Cancel() {
 	// Cancel the goroutine select
 	a.cancel()
+}
+
+var log *logrus.Entry
+
+func init() {
+	log = logrus.WithField("prefix", "example_app")
 }

@@ -1,14 +1,18 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"github.com/helto4real/go-daemon/daemon"
 	"github.com/helto4real/go-hassclient/client"
+	"github.com/sirupsen/logrus"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 )
 
+var log *logrus.Entry
+
 func main() {
+
 	log.Println("Starting go-daemon..")
 	osSignal := make(chan os.Signal, 1)
 	daemon := daemon.NewApplicationDaemon()
@@ -23,4 +27,14 @@ func main() {
 			daemon.Stop()
 		}
 	}
+}
+func init() {
+	log = logrus.WithField("prefix", "go-appdaemon")
+	Formatter := new(prefixed.TextFormatter)
+	Formatter.FullTimestamp = true
+	Formatter.TimestampFormat = "2006-01-02 15:04:05"
+	Formatter.ForceColors = false
+	Formatter.ForceFormatting = false
+	logrus.SetFormatter(Formatter)
+	log.Level = logrus.TraceLevel
 }

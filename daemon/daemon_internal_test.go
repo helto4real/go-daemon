@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	h "github.com/helto4real/go-daemon/daemon/test"
+	"github.com/helto4real/go-hassclient/client"
 )
 
 func TestGetAllApplicationConfigFilePaths(t *testing.T) {
@@ -55,6 +56,43 @@ func TestGetInstanceTypeMissing(t *testing.T) {
 	app, ok := daemon.NewDaemonApp("name_not_exist")
 	h.Equals(t, false, ok)
 	h.Equals(t, nil, app)
+}
+
+func TestHandleEntity(t *testing.T) {
+	entity := client.HassEntity{
+		ID:   "testentity",
+		Name: "Hello"}
+
+	daemon := ApplicationDaemon{
+		stateListeners: map[string][]chan client.HassEntity{
+			"testentity": []chan client.HassEntity{
+				make(chan client.HassEntity, 2),
+				make(chan client.HassEntity, 2)}}}
+
+	daemon.handleEntity(&entity)
+
+	e := <-daemon.stateListeners["testentity"][0]
+	e2 := <-daemon.stateListeners["testentity"][1]
+	h.NotEquals(t, nil, e)
+	h.NotEquals(t, nil, e2)
+}
+
+func ExampleHandleEntityFullChannel() {
+	entity := client.HassEntity{
+		ID:   "testentity",
+		Name: "Hello"}
+
+	daemon := ApplicationDaemon{
+		stateListeners: map[string][]chan client.HassEntity{
+			"testentity": []chan client.HassEntity{
+				make(chan client.HassEntity, 1)}}}
+
+	daemon.handleEntity(&entity)
+	daemon.handleEntity(&entity)
+
+	<-daemon.stateListeners["testentity"][0]
+
+	// Outputt: Channel full for entity: testentity
 }
 
 type testapp struct {

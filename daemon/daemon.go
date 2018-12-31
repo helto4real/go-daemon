@@ -3,7 +3,6 @@ package daemon
 import (
 	"context"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,8 +12,11 @@ import (
 	"github.com/helto4real/go-daemon/daemon/config"
 	"github.com/helto4real/go-hassclient/client"
 	c "github.com/helto4real/go-hassclient/client"
+	"github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
+
+var log *logrus.Entry
 
 type DaemonCommand int
 
@@ -362,4 +364,10 @@ func (a *ApplicationDaemon) instanceAllApplications() []DaemonApplication {
 
 	}
 	return applicationInstances
+}
+
+func init() {
+
+	log = logrus.WithField("prefix", "Daemon")
+
 }
