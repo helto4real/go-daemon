@@ -17,7 +17,7 @@ type DaemonAppHelper interface {
 	GetCancelFunction() context.CancelFunc
 
 	// GetEntity returns the state of a entity
-	GetEntity(entity string) (client.HassEntity, bool)
+	GetEntity(entity string) (*client.HassEntity, bool)
 
 	// TurnsOn turns on an entity with no attributes
 	TurnOn(entity string)

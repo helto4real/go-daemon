@@ -58,7 +58,7 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant,
 	conf, err := configuration.Open()
 
 	if err != nil {
-		log.Print("Failed to open config file, ending", err)
+		log.Error("Failed to open config file, ending -> ", err)
 		return false
 	}
 	a.config = conf
@@ -82,19 +82,19 @@ func (a *ApplicationDaemon) Stop() {
 func (a *ApplicationDaemon) AtSunset(offset time.Duration, sunsetChannel chan bool) *time.Timer {
 	sun, ok := a.GetEntity("sun.sun")
 	if !ok {
-		log.Println("Failed to get sun.sun entity, cant set AtSunset!")
+		log.Errorln("Failed to get sun.sun entity, cant set AtSunset!")
 		return nil
 	}
 
 	sunset, ok := sun.New.Attributes["next_setting"]
 	if !ok {
-		log.Println("Failed to get the attribute 'next_setting', catn set AtSunset!")
+		log.Errorln("Failed to get the attribute 'next_setting', catn set AtSunset!")
 		return nil
 	}
 	t, err := time.Parse(time.RFC3339, sunset)
 
 	if err != nil {
-		log.Print("Failed to parse date", sunset)
+		log.Error("Failed to parse date", sunset)
 		return nil
 	}
 	toffset := t.Add(offset)
@@ -103,11 +103,12 @@ func (a *ApplicationDaemon) AtSunset(offset time.Duration, sunsetChannel chan bo
 		// negative offsets and the rescheduling is done in the right after
 		// this event is set, we just add a day to the time if that happens
 		toffset = toffset.Add(time.Hour * 24)
+		log.Debug("We are before in time, adding 24 hours")
 	}
 	// Calculate duration until sunset
 	dur := toffset.Sub(time.Now())
+	log.Debugf("Next sunset event at %v, in %v ", toffset.Format("2006-01-02 15:04:05"), dur.Round(time.Second))
 
-	log.Printf("Next sunset event at %v, in %v hours and %v minutes", toffset, dur.Hours(), dur.Minutes())
 	return time.AfterFunc(dur, func() {
 		sunsetChannel <- true
 	})
@@ -119,19 +120,19 @@ func (a *ApplicationDaemon) AtSunset(offset time.Duration, sunsetChannel chan bo
 func (a *ApplicationDaemon) AtSunrise(offset time.Duration, sunriseChannel chan bool) *time.Timer {
 	sun, ok := a.GetEntity("sun.sun")
 	if !ok {
-		log.Println("Failed to get sun.sun entity, cant set AtSunrise!")
+		log.Errorln("Failed to get sun.sun entity, cant set AtSunrise!")
 		return nil
 	}
 
 	sunrise, ok := sun.New.Attributes["next_rising"]
 	if !ok {
-		log.Println("Failed to get the attribute 'next_rising', catn set AtSunrise!")
+		log.Errorln("Failed to get the attribute 'next_rising', catn set AtSunrise!")
 		return nil
 	}
 	t, err := time.Parse(time.RFC3339, sunrise)
 
 	if err != nil {
-		log.Print("Failed to parse date", sunrise)
+		log.Errorln("Failed to parse date", sunrise)
 		return nil
 	}
 	toffset := t.Add(offset)
@@ -140,11 +141,12 @@ func (a *ApplicationDaemon) AtSunrise(offset time.Duration, sunriseChannel chan 
 		// negative offsets and the rescheduling is done in the right after
 		// this event is set, we just add a day to the time if that happens
 		toffset = toffset.Add(time.Hour * 24)
+		log.Debug("We are before in time, adding 24 hours")
 	}
 	// Calculate duration until sunset
 	dur := toffset.Sub(time.Now())
 
-	log.Printf("Next surise event at %v, in %v hours and %v minutes", toffset, dur.Hours(), dur.Minutes())
+	log.Debugf("Next surise event at %v, in %v ", toffset.Format("2006-01-02 15:04:05"), dur.Round(time.Second))
 	return time.AfterFunc(dur, func() {
 		sunriseChannel <- true
 	})
@@ -167,7 +169,7 @@ func (a *ApplicationDaemon) ListenState(entity string, stateChannel chan client.
 		for _, sChannel := range stateChannels {
 			if sChannel == stateChannel {
 				// Allreade registered so return
-				log.Printf("Listen state already registered on %s on current channel", entity)
+				log.Errorf("Listen state already registered on %s on current channel", entity)
 				return
 			}
 		}
@@ -192,7 +194,7 @@ func (a *ApplicationDaemon) GetCancelFunction() context.CancelFunc {
 }
 
 // GetEntity returns the state of a entity
-func (a *ApplicationDaemon) GetEntity(entity string) (client.HassEntity, bool) {
+func (a *ApplicationDaemon) GetEntity(entity string) (*client.HassEntity, bool) {
 	return a.hassClient.GetEntity(entity)
 }
 
@@ -262,7 +264,7 @@ func (a *ApplicationDaemon) handleEntity(entity *c.HassEntity) {
 			case ch <- *entity:
 			default:
 				// This happens if app has not taken care of last sent message
-				log.Printf("Channel full for entity: %s", entity.ID)
+				log.Errorf("Channel full for entity: %s", entity.ID)
 			}
 		}
 	}
@@ -289,14 +291,14 @@ func (a *ApplicationDaemon) applicationDaemonLoop() {
 }
 
 func (a *ApplicationDaemon) loadDaemonApplications() {
-	log.Println("Loading applications...")
+	log.Debugln("Loading applications...")
 	if len(a.applications) > 0 {
 		a.unloadDaemonApplications()
 	}
 	a.applications = a.instanceAllApplications()
 }
 func (a *ApplicationDaemon) unloadDaemonApplications() {
-	log.Println("Unloading applications...")
+	log.Debugln("Unloading applications...")
 	// Remove all subscriptions here
 	a.stateListeners = make(map[string][]chan client.HassEntity)
 	// Remove the applications
@@ -320,7 +322,7 @@ func (a *ApplicationDaemon) getAllApplicationConfigFilePaths() []string {
 	})
 
 	if err != nil {
-		log.Print("Failed to get all the configuration files.", err)
+		log.Error("Failed to get all the configuration files.", err)
 	}
 
 	return fileList
@@ -331,12 +333,12 @@ func (a *ApplicationDaemon) getConfigFromFile(path string) (map[string]DeamonApp
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Print("Failed to read app yaml file", path, err)
+		log.Error("Failed to read app yaml file", path, err)
 		return nil, false
 	}
 	err = yaml.Unmarshal(data, i)
 	if err != nil {
-		log.Print("Failed to parse app yaml file", path, err)
+		log.Error("Failed to parse app yaml file", path, err)
 		return nil, false
 	}
 	return i, true
@@ -353,11 +355,11 @@ func (a *ApplicationDaemon) instanceAllApplications() []DaemonApplication {
 			for _, appCfg := range cfgList {
 				app, ok := a.NewDaemonApp(appCfg.App)
 				if ok {
-					log.Println("Loading application: ", appCfg.App)
+					log.Infoln("Loading application: ", appCfg.App)
 					applicationInstances = append(applicationInstances, app)
 					app.Initialize(a, appCfg)
 				} else {
-					log.Printf("Did not find the application {%s}, please check config in [%s] ", appCfg.App, configFile)
+					log.Errorf("Did not find the application {%s}, please check config in [%s] ", appCfg.App, configFile)
 				}
 			}
 		}

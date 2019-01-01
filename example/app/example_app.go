@@ -135,6 +135,7 @@ func (a *ExampleApp) Cancel() {
 
 var log *logrus.Entry
 
+// init is called first in all packages. This setup the logging to use prefix
 func init() {
 	log = logrus.WithField("prefix", "example_app")
 }

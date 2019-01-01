@@ -1,8 +1,12 @@
 package daemon
 
 import (
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/sirupsen/logrus"
 
 	h "github.com/helto4real/go-daemon/daemon/test"
 	"github.com/helto4real/go-hassclient/client"
@@ -10,19 +14,19 @@ import (
 
 func TestGetAllApplicationConfigFilePaths(t *testing.T) {
 	daemon := ApplicationDaemon{
-		configPath: "testdata"}
+		configPath: "testdata/ok"}
 
 	files := daemon.getAllApplicationConfigFilePaths()
 	h.Equals(t, 3, len(files))
-	h.Equals(t, filepath.Join("testdata", "app", "app.yaml"), files[0])
-	h.Equals(t, filepath.Join("testdata", "app", "folder", "myapp.yaml"), files[1])
-	h.Equals(t, filepath.Join("testdata", "app", "folder2", "myapp2.yaml"), files[2])
+	h.Equals(t, filepath.Join("testdata/ok", "app", "app.yaml"), files[0])
+	h.Equals(t, filepath.Join("testdata/ok", "app", "folder", "myapp.yaml"), files[1])
+	h.Equals(t, filepath.Join("testdata/ok", "app", "folder2", "myapp2.yaml"), files[2])
 }
 
 func TestGetConfigFromFile(t *testing.T) {
 
 	daemon := ApplicationDaemon{
-		configPath: "testdata"}
+		configPath: "testdata/ok"}
 
 	files := daemon.getAllApplicationConfigFilePaths()
 	h.Equals(t, 3, len(files))
@@ -77,7 +81,14 @@ func TestHandleEntity(t *testing.T) {
 	h.NotEquals(t, nil, e2)
 }
 
-func ExampleHandleEntityFullChannel() {
+func TestHandleEntityFullChannel(t *testing.T) {
+	mockStdErr := strings.Builder{}
+	logrus.SetOutput(&mockStdErr)
+	defer func() {
+		os.Stderr.WriteString(mockStdErr.String())
+		logrus.SetOutput(os.Stderr)
+	}()
+
 	entity := client.HassEntity{
 		ID:   "testentity",
 		Name: "Hello"}
@@ -91,8 +102,8 @@ func ExampleHandleEntityFullChannel() {
 	daemon.handleEntity(&entity)
 
 	<-daemon.stateListeners["testentity"][0]
+	h.Equals(t, true, strings.Contains(mockStdErr.String(), "Channel full for entity: testentity"))
 
-	// Outputt: Channel full for entity: testentity
 }
 
 type testapp struct {
