@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/helto4real/go-daemon/daemon"
+	c "github.com/helto4real/go-daemon/daemon/core"
 	"github.com/helto4real/go-hassclient/client"
 	"github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
@@ -15,7 +15,7 @@ func main() {
 
 	log.Println("Starting go-daemon..")
 	osSignal := make(chan os.Signal, 1)
-	daemon := daemon.NewApplicationDaemon()
+	daemon := c.NewApplicationDaemon()
 	hass := client.NewHassClient()
 	// Apps is defined in the apps.go file
 	daemon.Start(".", hass, apps)

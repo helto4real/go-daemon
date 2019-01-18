@@ -1,15 +1,16 @@
-package daemon
+package core
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
-
+	d "github.com/helto4real/go-daemon/daemon"
 	h "github.com/helto4real/go-daemon/daemon/test"
 	"github.com/helto4real/go-hassclient/client"
+	"github.com/sirupsen/logrus"
 )
 
 func TestGetAllApplicationConfigFilePaths(t *testing.T) {
@@ -64,24 +65,29 @@ func TestGetInstanceTypeMissing(t *testing.T) {
 
 func TestHandleEntity(t *testing.T) {
 	entity := client.HassEntity{
-		ID:   "testentity",
+		ID:   "light.testentity",
 		Name: "Hello"}
 
 	daemon := ApplicationDaemon{
 		stateListeners: map[string][]chan client.HassEntity{
-			"testentity": []chan client.HassEntity{
+			"light.testentity": []chan client.HassEntity{
 				make(chan client.HassEntity, 2),
-				make(chan client.HassEntity, 2)}}}
+				make(chan client.HassEntity, 2)}},
+		cancelContext: context.Background()}
 
 	daemon.handleEntity(&entity)
 
-	e := <-daemon.stateListeners["testentity"][0]
-	e2 := <-daemon.stateListeners["testentity"][1]
+	e := <-daemon.stateListeners["light.testentity"][0]
+	e2 := <-daemon.stateListeners["light.testentity"][1]
 	h.NotEquals(t, nil, e)
 	h.NotEquals(t, nil, e2)
 }
 
 func TestHandleEntityFullChannel(t *testing.T) {
+	oldTimeout := defaultTimeoutForFullChannel
+	defaultTimeoutForFullChannel = 1 // 1 second for test
+	defer func() { defaultTimeoutForFullChannel = oldTimeout }()
+
 	mockStdErr := strings.Builder{}
 	logrus.SetOutput(&mockStdErr)
 	defer func() {
@@ -90,26 +96,27 @@ func TestHandleEntityFullChannel(t *testing.T) {
 	}()
 
 	entity := client.HassEntity{
-		ID:   "testentity",
+		ID:   "light.testentity",
 		Name: "Hello"}
 
 	daemon := ApplicationDaemon{
 		stateListeners: map[string][]chan client.HassEntity{
-			"testentity": []chan client.HassEntity{
-				make(chan client.HassEntity, 1)}}}
+			"light.testentity": []chan client.HassEntity{
+				make(chan client.HassEntity, 1)}},
+		cancelContext: context.Background()}
 
 	daemon.handleEntity(&entity)
 	daemon.handleEntity(&entity)
 
-	<-daemon.stateListeners["testentity"][0]
-	h.Equals(t, true, strings.Contains(mockStdErr.String(), "Channel full for entity: testentity"))
+	<-daemon.stateListeners["light.testentity"][0]
+	h.Equals(t, true, strings.Contains(mockStdErr.String(), "Channel full, please check recevicer channel"))
 
 }
 
 type testapp struct {
 }
 
-func (a testapp) Initialize(helper DaemonAppHelper, config DeamonAppConfig) bool {
+func (a testapp) Initialize(helper d.DaemonAppHelper, config d.DeamonAppConfig) bool {
 	return true
 }
 

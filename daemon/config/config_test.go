@@ -15,6 +15,9 @@ func TestOpen(t *testing.T) {
 	h.Equals(t, config.HomeAssistant.SSL, false)
 	h.Equals(t, config.HomeAssistant.Token, "ABCDEFG1234567")
 
+	h.Equals(t, 2, len(config.People))
+	h.Equals(t, 3, len(config.People["fred"].Devices))
+
 }
 
 func TestFailOpenConfigFile(t *testing.T) {

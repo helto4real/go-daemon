@@ -1,4 +1,4 @@
-package daemon_test
+package core_test
 
 import (
 	"log"
@@ -7,7 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/helto4real/go-daemon/daemon"
+	de "github.com/helto4real/go-daemon/daemon"
+	c "github.com/helto4real/go-daemon/daemon/core"
 	"github.com/sirupsen/logrus"
 
 	h "github.com/helto4real/go-daemon/daemon/test"
@@ -21,12 +22,12 @@ func TestGetAllApplicationConfigFilePaths(t *testing.T) {
 }
 
 func TestNewApplicationDaemon(t *testing.T) {
-	d := daemon.NewApplicationDaemon()
+	d := c.NewApplicationDaemon()
 	h.NotEquals(t, nil, d)
 }
 
 func TestStartAndStop(t *testing.T) {
-	d := daemon.NewApplicationDaemon()
+	d := c.NewApplicationDaemon()
 
 	fake := newFakeHomeAssistant()
 	defer func() {
@@ -39,7 +40,7 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestStartFailConfigNotExist(t *testing.T) {
-	d := daemon.NewApplicationDaemon()
+	d := c.NewApplicationDaemon()
 
 	fake := newFakeHomeAssistant()
 
@@ -50,14 +51,14 @@ func TestStartFailConfigNotExist(t *testing.T) {
 }
 
 func TestBasicDeamonHelperFunctions(t *testing.T) {
-	d := daemon.NewApplicationDaemon()
+	d := c.NewApplicationDaemon()
 
 	fake := newFakeHomeAssistant()
 
 	defer d.Stop()
 	d.Start("testdata/ok", fake, newAvailableApps())
 
-	helper := d.(daemon.DaemonAppHelper)
+	helper := d.(de.DaemonAppHelper)
 	h.NotEquals(t, nil, helper.GetCancelContext())
 	h.NotEquals(t, nil, helper.GetCancelFunction())
 	helper.TurnOn("any")
@@ -69,13 +70,13 @@ func TestBasicDeamonHelperFunctions(t *testing.T) {
 }
 
 func TestBasicGetEntity(t *testing.T) {
-	d := daemon.NewApplicationDaemon()
-	hlpr := d.(daemon.DaemonAppHelper)
+	d := c.NewApplicationDaemon()
+	hlpr := d.(de.DaemonAppHelper)
 
 	defer d.Stop()
 	d.Start("testdata/ok", newFakeHomeAssistant(), newAvailableApps())
 
-	e, ok := hlpr.GetEntity("entity1")
+	e, ok := hlpr.GetEntity("sensor.entity1")
 
 	h.Equals(t, true, ok)
 	h.NotEquals(t, nil, e)
@@ -84,8 +85,8 @@ func TestBasicGetEntity(t *testing.T) {
 }
 
 func TestAtSunset(t *testing.T) {
-	d := daemon.NewApplicationDaemon()
-	hlpr := d.(daemon.DaemonAppHelper)
+	d := c.NewApplicationDaemon()
+	hlpr := d.(de.DaemonAppHelper)
 
 	fake := newFakeHomeAssistant()
 
@@ -101,8 +102,8 @@ func TestAtSunset(t *testing.T) {
 }
 
 func TestAtSunsetErrors(t *testing.T) {
-	d := daemon.NewApplicationDaemon()
-	hlpr := d.(daemon.DaemonAppHelper)
+	d := c.NewApplicationDaemon()
+	hlpr := d.(de.DaemonAppHelper)
 
 	fake := newFakeHomeAssistant()
 
@@ -144,8 +145,8 @@ func TestAtSunsetErrors(t *testing.T) {
 }
 
 func TestAtSunRise(t *testing.T) {
-	d := daemon.NewApplicationDaemon()
-	hlpr := d.(daemon.DaemonAppHelper)
+	d := c.NewApplicationDaemon()
+	hlpr := d.(de.DaemonAppHelper)
 
 	fake := newFakeHomeAssistant()
 
@@ -160,8 +161,8 @@ func TestAtSunRise(t *testing.T) {
 
 }
 func TestAtSunriseErrors(t *testing.T) {
-	d := daemon.NewApplicationDaemon()
-	hlpr := d.(daemon.DaemonAppHelper)
+	d := c.NewApplicationDaemon()
+	hlpr := d.(de.DaemonAppHelper)
 
 	fake := newFakeHomeAssistant()
 
@@ -203,8 +204,8 @@ func TestAtSunriseErrors(t *testing.T) {
 }
 
 func TestListenState(t *testing.T) {
-	d := daemon.NewApplicationDaemon()
-	hlpr := d.(daemon.DaemonAppHelper)
+	d := c.NewApplicationDaemon()
+	hlpr := d.(de.DaemonAppHelper)
 	fake := newFakeHomeAssistant()
 
 	defer d.Stop()
@@ -213,13 +214,13 @@ func TestListenState(t *testing.T) {
 	// Set to 2 deep so it wont block
 	hchan1 := make(chan client.HassEntity, 2)
 	hchan2 := make(chan client.HassEntity, 2)
-	hlpr.ListenState("entity1", hchan1)
-	hlpr.ListenState("entity1", hchan2)
+	hlpr.ListenState("sensor.entity1", hchan1)
+	hlpr.ListenState("sensor.entity1", hchan2)
 
 	go func() {
 		// Fake coming a new message from hass
-		fake.entityChannel <- &client.HassEntity{
-			ID:   "entity1",
+		fake.hassChannel <- &client.HassEntity{
+			ID:   "sensor.entity1",
 			Name: "entityname",
 			Old: client.HassEntityState{
 				State: "anystate"}}
@@ -239,9 +240,48 @@ func TestListenState(t *testing.T) {
 		os.Stderr.WriteString(mockStdErr.String())
 		logrus.SetOutput(os.Stderr)
 	}()
-	hlpr.ListenState("entity1", hchan1)
+	hlpr.ListenState("sensor.entity1", hchan1)
 	h.Equals(t, true, strings.Contains(mockStdErr.String(), "Listen state already registered on "))
 
+}
+
+func TestLoadAndUnloadApplications(t *testing.T) {
+	d := c.NewApplicationDaemon()
+	//hlpr := d.(daemon.DaemonAppHelper)
+
+	fake := newFakeHomeAssistant()
+
+	defer d.Stop()
+	d.Start("testdata/ok", fake, newAvailableApps())
+
+	mockStdErr := strings.Builder{}
+	logrus.SetOutput(&mockStdErr)
+	level := logrus.GetLevel()
+	logrus.SetLevel(logrus.DebugLevel)
+	defer func() {
+		os.Stderr.WriteString(mockStdErr.String())
+		logrus.SetOutput(os.Stderr)
+		logrus.SetLevel(level)
+	}()
+
+	go func() {
+		// Fake Hass going online
+		fake.statusChannel <- true
+	}()
+	// Hacky, let the goroutines do it stuff in the background.. 100ms should be enough
+	// even for slow systems
+	<-time.After(time.Duration(100 * time.Millisecond))
+	h.Equals(t, true, strings.Contains(mockStdErr.String(), "Loading applications..."))
+
+	go func() {
+		// Fake Hass going online
+		fake.statusChannel <- true
+	}()
+	// Hacky, let the goroutines do it stuff in the background.. 100ms should be enough
+	// even for slow systems
+	<-time.After(time.Duration(100 * time.Millisecond))
+	// Now we get two connected events we should have unloaded it first
+	h.Equals(t, true, strings.Contains(mockStdErr.String(), "Unloading applications..."))
 }
 
 // Check the testdata/badformat/go-daemon.yaml
@@ -253,7 +293,7 @@ func TestStartFailMalformatedConfig(t *testing.T) {
 		logrus.SetOutput(os.Stderr)
 	}()
 
-	d := daemon.NewApplicationDaemon()
+	d := c.NewApplicationDaemon()
 
 	fake := newFakeHomeAssistant()
 
@@ -271,7 +311,7 @@ Fake testapp
 type testapp struct {
 }
 
-func (a testapp) Initialize(helper daemon.DaemonAppHelper, config daemon.DeamonAppConfig) bool {
+func (a testapp) Initialize(helper de.DaemonAppHelper, config de.DeamonAppConfig) bool {
 	return true
 }
 
@@ -299,14 +339,14 @@ type fakeHomeAssistant struct {
 	fakeMalformatedDates bool
 	fakeTimeBeforeNow    bool
 
-	entityChannel chan *client.HassEntity
+	hassChannel   chan interface{}
 	statusChannel chan bool
 }
 
 func newFakeHomeAssistant() *fakeHomeAssistant {
 	f := fakeHomeAssistant{
-		entityChannel: make(chan *client.HassEntity),
-		statusChannel: make(chan bool)}
+		hassChannel:   make(chan interface{}),
+		statusChannel: make(chan bool, 2)}
 
 	return &f
 }
@@ -333,7 +373,7 @@ func (a *fakeHomeAssistant) GetEntity(entity string) (*client.HassEntity, bool) 
 			Name: "sun.sun",
 			New: client.HassEntityState{
 				State: "below_horizon",
-				Attributes: map[string]string{
+				Attributes: map[string]interface{}{
 					"next_setting": time.Now().Add(dur).Format(time.RFC3339),
 					"next_rising":  time.Now().Add(dur).Format(time.RFC3339)}}}, true
 	}
@@ -344,7 +384,7 @@ func (a *fakeHomeAssistant) GetEntity(entity string) (*client.HassEntity, bool) 
 			Name: "sun.sun",
 			New: client.HassEntityState{
 				State: "below_horizon",
-				Attributes: map[string]string{
+				Attributes: map[string]interface{}{
 					"next_setting": "not a date",
 					"next_rising":  "not a date"}}}, true
 	}
@@ -354,22 +394,31 @@ func (a *fakeHomeAssistant) GetEntity(entity string) (*client.HassEntity, bool) 
 			Name: "sun.sun",
 			New: client.HassEntityState{
 				State:      "below_horizon",
-				Attributes: map[string]string{}}}, true
+				Attributes: map[string]interface{}{}}}, true
 	}
 
-	if entity == "entity1" {
+	if entity == "sensor.entity1" {
 		return &client.HassEntity{
-			ID:   "entity1",
+			ID:   "sensor.entity1",
 			Name: "entityname"}, true
 	}
-
+	if entity == "sensor.entity2" {
+		return &client.HassEntity{
+			ID:   "sensor.entity2",
+			Name: "entityname"}, true
+	}
 	return nil, false
+}
+
+func (a *fakeHomeAssistant) SetEntity(entity *client.HassEntity) bool {
+
+	return true
 }
 func (a *fakeHomeAssistant) CallService(service string, serviceData map[string]string) {
 	a.nrOfCallsCallService = a.nrOfCallsCallService + 1
 }
-func (a *fakeHomeAssistant) GetEntityChannel() chan *client.HassEntity {
-	return a.entityChannel
+func (a *fakeHomeAssistant) GetHassChannel() chan interface{} {
+	return a.hassChannel
 }
 func (a *fakeHomeAssistant) GetStatusChannel() chan bool {
 	return a.statusChannel

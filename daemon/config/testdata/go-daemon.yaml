@@ -4,3 +4,18 @@ home_assistant:
   ip: '192.168.0.100'
   ssl: false
   token: 'ABCDEFG1234567'
+
+
+people:
+  fred:
+    friendly_name: "Fred Flinta"
+    devices:
+      - "device_tracker.btdevice1"
+      - "device_tracker.gpsdevice1"
+      - "device_tracker.wifidevice1"
+  superman:
+    friendly_name: "Clark Kent"
+    devices:
+      - "device_tracker.btdevice2"
+      - "device_tracker.gpsdevice2"
+      - "device_tracker.wifidevice2"

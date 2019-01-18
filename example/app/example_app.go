@@ -33,14 +33,17 @@ import (
 // ExampleApp implements an go-appdaemon app
 // This app takes a light and logs its state changes
 type ExampleApp struct {
-	deamon        d.DaemonAppHelper
-	cfg           d.DeamonAppConfig
-	state         chan c.HassEntity
-	sunset        chan bool
-	sunrise       chan bool
-	cancel        context.CancelFunc
-	cancelContext context.Context
-	timer         *time.Timer
+	deamon          d.DaemonAppHelper
+	cfg             d.DeamonAppConfig
+	state           chan c.HassEntity
+	callServiceChan chan c.HassCallServiceEvent
+	sunset          chan bool
+	sunrise         chan bool
+	cancel          context.CancelFunc
+	cancelContext   context.Context
+	timer           *time.Timer
+	testEntity      d.DaemonEntity
+	entityChannel   chan d.DaemonEntity
 }
 
 // Initialize is called when an application is started
@@ -52,11 +55,16 @@ func (a *ExampleApp) Initialize(helper d.DaemonAppHelper, config d.DeamonAppConf
 	a.deamon = helper
 	a.cfg = config
 	// Make the channel all state changes we listen too will be sent to
-	a.state = make(chan c.HassEntity, 1)
+	// I will use 5 deep channel so we can handle more incoming before
+	// blocking the channel
+	a.entityChannel = make(chan d.DaemonEntity, 5)
+	a.callServiceChan = make(chan c.HassCallServiceEvent, 5)
 	// Make the sunset and sunrise channels
 	a.sunset = make(chan bool, 1)
 	a.sunrise = make(chan bool, 1)
 
+	a.testEntity = a.deamon.NewEntity("light.tomas_fonster", //binary_sensor.tomas_pir
+		a.deamon, false, a.entityChannel)
 	// Make a cancelation context to use when the application need to close
 	ctx, cancel := context.WithCancel(context.Background())
 	a.cancel = cancel
@@ -64,8 +72,10 @@ func (a *ExampleApp) Initialize(helper d.DaemonAppHelper, config d.DeamonAppConf
 
 	// Listen to state changes to the entity configured
 	// in the config yaml file
-	//a.deamon.ListenState(a.cfg.Properties["tomas_room_light"], a.state)
-	a.deamon.ListenState(a.cfg.Properties["tomas_motion_sensor"], a.state)
+	// a.deamon.ListenState("device_tracker", a.state)
+	// a.deamon.ListenCallServiceEvent("light", "turn_on", a.callServiceChan)
+	// a.deamon.ListenCallServiceEvent("light", "turn_off", a.callServiceChan)
+	//a.deamon.ListenState(a.cfg.Properties["tomas_motion_sensor"], a.state)
 	//a.deamon.ListenState("sun.sun", a.state)
 	a.deamon.AtSunset(time.Duration(-1)*time.Hour, a.sunset)
 	a.deamon.AtSunrise(time.Duration(30)*time.Minute, a.sunrise)
@@ -84,9 +94,14 @@ func (a *ExampleApp) handleStateChanges() {
 			if !ok {
 				return
 			}
-			if entity.New.State != entity.Old.State {
-				a.handleEntityState(entity)
+
+			a.handleEntityState(entity)
+
+		case callServiceEvent, ok := <-a.callServiceChan:
+			if !ok {
+				return
 			}
+			log.Print(callServiceEvent)
 		case <-a.sunrise:
 			log.Println("SUNRISE!")
 			// Reschedule
@@ -95,6 +110,12 @@ func (a *ExampleApp) handleStateChanges() {
 			log.Println("SUNSET!")
 			// Reschedule
 			a.deamon.AtSunset(time.Duration(-1)*time.Hour, a.sunset)
+		case myentity, ok := <-a.entityChannel:
+			if !ok {
+				return
+			}
+			log.Errorf("Entity %s changed state to: %s", myentity.ID(), myentity.State())
+
 		// Listen to the cancelation context and leave when canceled
 		case <-a.cancelContext.Done():
 			return
@@ -106,7 +127,7 @@ func (a *ExampleApp) handleEntityState(entity client.HassEntity) {
 	motionsensor := a.cfg.Properties["tomas_motion_sensor"]
 	light := a.cfg.Properties["tomas_room_light"]
 
-	if entity.ID == motionsensor {
+	if entity.ID == motionsensor && entity.New.State != entity.Old.State {
 		if entity.New.State == "on" {
 
 			a.deamon.TurnOn(light)
@@ -122,6 +143,8 @@ func (a *ExampleApp) handleEntityState(entity client.HassEntity) {
 			}
 
 		}
+	} else {
+		//log.Info(entity)
 	}
 }
 

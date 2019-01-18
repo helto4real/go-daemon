@@ -1,4 +1,4 @@
-package daemon
+package core
 
 import (
 	"context"
@@ -9,7 +9,9 @@ import (
 	"strings"
 	"time"
 
+	d "github.com/helto4real/go-daemon/daemon"
 	"github.com/helto4real/go-daemon/daemon/config"
+	"github.com/helto4real/go-daemon/daemon/defaultapps"
 	"github.com/helto4real/go-hassclient/client"
 	c "github.com/helto4real/go-hassclient/client"
 	"github.com/sirupsen/logrus"
@@ -26,21 +28,17 @@ const (
 	ReStartApplications DaemonCommand = 2
 )
 
-type DeamonAppConfig struct {
-	App        string            `yaml:"app"`
-	Properties map[string]string `yaml:"properties"`
-}
-
 type ApplicationDaemon struct {
-	hassClient     c.HomeAssistant
-	config         *config.Config
-	cancel         context.CancelFunc
-	cancelContext  context.Context
-	configPath     string
-	commandChannel chan DaemonCommand
-	applications   []DaemonApplication
-	availableApps  map[string]interface{}
-	stateListeners map[string][]chan client.HassEntity
+	hassClient                c.HomeAssistant
+	config                    *config.Config
+	cancel                    context.CancelFunc
+	cancelContext             context.Context
+	configPath                string
+	commandChannel            chan DaemonCommand
+	applications              []d.DaemonApplication
+	availableApps             map[string]interface{}
+	stateListeners            map[string][]chan client.HassEntity
+	callServiceEventListeners map[string]map[string][]chan client.HassCallServiceEvent
 }
 
 // Start the daemon, use in main function
@@ -51,9 +49,13 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant,
 	a.cancelContext = ctx
 	a.cancel = cancel
 	a.configPath = configPath
-	a.applications = []DaemonApplication{}
+	a.applications = []d.DaemonApplication{}
 	a.availableApps = availableApps
+
 	a.stateListeners = make(map[string][]chan client.HassEntity)
+	a.callServiceEventListeners =
+		make(map[string]map[string][]chan client.HassCallServiceEvent)
+
 	configuration := config.NewConfiguration(filepath.Join(configPath, "go-daemon.yaml"))
 	conf, err := configuration.Open()
 
@@ -86,7 +88,7 @@ func (a *ApplicationDaemon) AtSunset(offset time.Duration, sunsetChannel chan bo
 		return nil
 	}
 
-	sunset, ok := sun.New.Attributes["next_setting"]
+	sunset, ok := sun.New.Attributes["next_setting"].(string)
 	if !ok {
 		log.Errorln("Failed to get the attribute 'next_setting', catn set AtSunset!")
 		return nil
@@ -124,7 +126,7 @@ func (a *ApplicationDaemon) AtSunrise(offset time.Duration, sunriseChannel chan 
 		return nil
 	}
 
-	sunrise, ok := sun.New.Attributes["next_rising"]
+	sunrise, ok := sun.New.Attributes["next_rising"].(string)
 	if !ok {
 		log.Errorln("Failed to get the attribute 'next_rising', catn set AtSunrise!")
 		return nil
@@ -155,6 +157,41 @@ func (a *ApplicationDaemon) AtSunrise(offset time.Duration, sunriseChannel chan 
 // ListenState start listen to state changes from entity
 //
 // Any changes is reported back to the provided channel
+func (a *ApplicationDaemon) ListenCallServiceEvent(domain string, service string, callServiceChannel chan client.HassCallServiceEvent) {
+	// Convert to lower case if some noob wrote it wrong
+	domain = strings.ToLower(domain)
+	service = strings.ToLower(service)
+
+	domainCallServiceEventChannels, ok := a.callServiceEventListeners[domain]
+	if !ok {
+		domainCallServiceEventChannels =
+			map[string][]chan client.HassCallServiceEvent{}
+		a.callServiceEventListeners[domain] = domainCallServiceEventChannels
+	}
+
+	serviceChannels, ok := domainCallServiceEventChannels[service]
+	if !ok {
+		// First time we need to create the array
+		domainCallServiceEventChannels[service] =
+			[]chan client.HassCallServiceEvent{callServiceChannel}
+		return
+	}
+	// We have existing, make sure channel not registered already
+	for _, csChannel := range serviceChannels {
+		if csChannel == callServiceChannel {
+			// Allreade registered so return
+			log.Errorf("ListenCallServiceEvent: Already registered on %s on current channel", service)
+			return
+		}
+	}
+
+	// Add the new channel
+	domainCallServiceEventChannels[service] = append(serviceChannels, callServiceChannel)
+}
+
+// ListenState start listen to state changes from entity
+//
+// Any changes is reported back to the provided channel
 func (a *ApplicationDaemon) ListenState(entity string, stateChannel chan client.HassEntity) {
 	// Convert to lower case if some noob wrote it wrong
 	entityLower := strings.ToLower(entity)
@@ -164,21 +201,21 @@ func (a *ApplicationDaemon) ListenState(entity string, stateChannel chan client.
 		// First time we need to create the array
 		a.stateListeners[entityLower] = []chan client.HassEntity{stateChannel}
 		return
-	} else {
-		// We have existing, make sure channel not registered already
-		for _, sChannel := range stateChannels {
-			if sChannel == stateChannel {
-				// Allreade registered so return
-				log.Errorf("Listen state already registered on %s on current channel", entity)
-				return
-			}
+	}
+	// We have existing, make sure channel not registered already
+	for _, sChannel := range stateChannels {
+		if sChannel == stateChannel {
+			// Allreade registered so return
+			log.Errorf("Listen state already registered on %s on current channel", entity)
+			return
 		}
 	}
+
 	// Add the new channel
 	a.stateListeners[entityLower] = append(stateChannels, stateChannel)
 }
 
-func NewApplicationDaemon() ApplicationDaemonRunner {
+func NewApplicationDaemon() d.ApplicationDaemonRunner {
 	return &ApplicationDaemon{}
 }
 
@@ -198,6 +235,11 @@ func (a *ApplicationDaemon) GetEntity(entity string) (*client.HassEntity, bool) 
 	return a.hassClient.GetEntity(entity)
 }
 
+// SetEntity creates or updates existing entity
+func (a *ApplicationDaemon) SetEntity(entity *client.HassEntity) bool {
+	return a.hassClient.SetEntity(entity)
+}
+
 // TurnOn turns on an entity with no attributes
 func (a *ApplicationDaemon) TurnOn(entity string) {
 	a.hassClient.CallService("turn_on", map[string]string{"entity_id": entity})
@@ -213,10 +255,22 @@ func (a *ApplicationDaemon) Toggle(entity string) {
 	a.hassClient.CallService("toggle", map[string]string{"entity_id": entity})
 }
 
-func (a *ApplicationDaemon) NewDaemonApp(appName string) (DaemonApplication, bool) {
+func (a *ApplicationDaemon) GetPeople() map[string]*config.PeopleConfig {
+
+	// First make sure that the yaml config doesent make nil map
+	for _, personConfig := range a.config.People {
+		if personConfig.Attributes == nil {
+			personConfig.Attributes = map[string]interface{}{}
+		}
+
+	}
+	return a.config.People
+}
+
+func (a *ApplicationDaemon) NewDaemonApp(appName string) (d.DaemonApplication, bool) {
 	if f, exist := a.availableApps[appName]; exist {
 		instance := reflect.New(reflect.TypeOf(f)).Interface()
-		dApp, ok := instance.(DaemonApplication)
+		dApp, ok := instance.(d.DaemonApplication)
 		if ok {
 			return dApp, true
 		}
@@ -226,7 +280,7 @@ func (a *ApplicationDaemon) NewDaemonApp(appName string) (DaemonApplication, boo
 
 func (a *ApplicationDaemon) receiveHassLoop() {
 	hassStatusChannel := a.hassClient.GetStatusChannel()
-	hassEntityChannel := a.hassClient.GetEntityChannel()
+	hassChannel := a.hassClient.GetHassChannel()
 	commandChannel := a.commandChannel
 	for {
 		select {
@@ -242,12 +296,25 @@ func (a *ApplicationDaemon) receiveHassLoop() {
 					commandChannel <- StopApplications
 				}
 			}
-		case entity, mc := <-hassEntityChannel:
+		case message, mc := <-hassChannel:
 			if mc {
-				if entity.Old.State != "" {
-					a.handleEntity(entity)
+				//log.Info(message)
+				switch m := message.(type) {
+				case c.HassEntity:
+					if m.Old.State != "" {
+						// We do this in own go-routine so we never block main thread
+						go a.handleEntity(&m)
+					}
+
+				case c.HassCallServiceEvent:
+					go a.handleCallServiceEvent(&m)
+				default:
+					log.Errorf("Unexpected message type: %v", message)
 				}
 
+			} else {
+				//
+				log.Error("We should never get here!")
 			}
 		case <-a.cancelContext.Done():
 			return
@@ -255,16 +322,60 @@ func (a *ApplicationDaemon) receiveHassLoop() {
 	}
 }
 
+var defaultTimeoutForFullChannel = 5
+
+func (a *ApplicationDaemon) handleCallServiceEvent(callServiceEvent *c.HassCallServiceEvent) {
+	domainServiceCallListeners, exists := a.callServiceEventListeners[callServiceEvent.Domain]
+	if !exists {
+		return
+	}
+
+	// Check listen to status changes
+	csl, exists := domainServiceCallListeners[callServiceEvent.Service]
+	if exists {
+		for _, callServiceEventChannel := range csl {
+			select {
+			case callServiceEventChannel <- *callServiceEvent:
+			case <-time.After(time.Second * time.Duration(defaultTimeoutForFullChannel)):
+				// This should never happen incase the app does not read the messages
+				log.Errorf("Channel full, please check recevicer channel: %s", callServiceEvent.Service)
+			case <-a.cancelContext.Done():
+				// Exit cause of exit to os
+				return
+			}
+		}
+	}
+}
 func (a *ApplicationDaemon) handleEntity(entity *c.HassEntity) {
 	// Check listen to status changes
 	sl, exists := a.stateListeners[entity.ID]
 	if exists {
-		for _, ch := range sl {
+		for _, chEntity := range sl {
 			select {
-			case ch <- *entity:
-			default:
-				// This happens if app has not taken care of last sent message
-				log.Errorf("Channel full for entity: %s", entity.ID)
+			case chEntity <- *entity:
+			case <-time.After(time.Second * time.Duration(defaultTimeoutForFullChannel)):
+				// This should never happen incase the app does not read the messages
+				log.Errorf("Channel full, please check recevicer channel: %s", entity.ID)
+			case <-a.cancelContext.Done():
+				// Exit cause of exit to os
+				return
+			}
+		}
+	}
+	// Also check for plattform entitites
+	platform := strings.Split(entity.ID, ".")[0]
+
+	pl, exists := a.stateListeners[platform]
+	if exists {
+		for _, chPlatform := range pl {
+			select {
+			case chPlatform <- *entity:
+			case <-time.After(time.Second * time.Duration(defaultTimeoutForFullChannel)):
+				// This should never happen incase the app does not read the messages
+				log.Errorf("Platform channel full, please check recevicer channel: %s", platform)
+			case <-a.cancelContext.Done():
+				// Exit cause of exit to os
+				return
 			}
 		}
 	}
@@ -295,6 +406,7 @@ func (a *ApplicationDaemon) loadDaemonApplications() {
 	if len(a.applications) > 0 {
 		a.unloadDaemonApplications()
 	}
+
 	a.applications = a.instanceAllApplications()
 }
 func (a *ApplicationDaemon) unloadDaemonApplications() {
@@ -307,7 +419,7 @@ func (a *ApplicationDaemon) unloadDaemonApplications() {
 			app.Cancel()
 		}
 		// Get new instance of empty list
-		a.applications = []DaemonApplication{}
+		a.applications = []d.DaemonApplication{}
 	}
 }
 func (a *ApplicationDaemon) getAllApplicationConfigFilePaths() []string {
@@ -328,8 +440,8 @@ func (a *ApplicationDaemon) getAllApplicationConfigFilePaths() []string {
 	return fileList
 }
 
-func (a *ApplicationDaemon) getConfigFromFile(path string) (map[string]DeamonAppConfig, bool) {
-	i := make(map[string]DeamonAppConfig, 1)
+func (a *ApplicationDaemon) getConfigFromFile(path string) (map[string]d.DeamonAppConfig, bool) {
+	i := make(map[string]d.DeamonAppConfig, 1)
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -344,10 +456,23 @@ func (a *ApplicationDaemon) getConfigFromFile(path string) (map[string]DeamonApp
 	return i, true
 }
 
-func (a *ApplicationDaemon) instanceAllApplications() []DaemonApplication {
-	applicationInstances := []DaemonApplication{}
+func (a *ApplicationDaemon) NewEntity(id string, daemonHelper d.DaemonAppHelper, autoRespondServiceCall bool,
+	changedEntityChannel chan d.DaemonEntity) d.DaemonEntity {
+	return NewEntity(id, daemonHelper, autoRespondServiceCall, changedEntityChannel)
+}
+
+func (a *ApplicationDaemon) instanceAllApplications() []d.DaemonApplication {
+	applicationInstances := []d.DaemonApplication{}
 
 	allApplicationConfigs := a.getAllApplicationConfigFilePaths()
+
+	// Add the standard applications
+	if len(a.config.People) > 0 {
+		var peopleApp d.DaemonApplication = &defaultapps.PeopleApp{}
+		applicationInstances = append(applicationInstances, peopleApp)
+		log.Infoln("Loading default application: people_app")
+		peopleApp.Initialize(a, d.DeamonAppConfig{})
+	}
 
 	for _, configFile := range allApplicationConfigs {
 		cfgList, ok := a.getConfigFromFile(configFile)
