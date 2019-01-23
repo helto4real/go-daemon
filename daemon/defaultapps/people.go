@@ -11,6 +11,7 @@ package defaultapps
 
 import (
 	"context"
+	"math"
 	"sort"
 	"strings"
 
@@ -74,7 +75,7 @@ func (a *PeopleApp) Initialize(helper d.DaemonAppHelper, config d.DeamonAppConfi
 	a.stateChangedChannel = make(chan string, 2)
 	// Update state for all persons
 	for name := range a.conf {
-		a.handleUpdatedDeviceForPerson(name)
+		a.handleUpdatedDeviceForPerson(name, false)
 	}
 
 	a.listenToDevices()
@@ -94,36 +95,44 @@ func (a *PeopleApp) loop() {
 			if !ok {
 				return
 			}
-			a.handleUpdatedDevice(entity.ID)
+			a.handleUpdatedDevice(entity.ID, false)
 
 		case person, ok := <-a.stateChangedChannel:
 			if !ok {
 				return
 			}
-			a.handleUpdatedDeviceForPerson(person)
+			a.handleUpdatedDeviceForPerson(person, true)
 		// Listen to the cancelation context and leave when canceled
 		case <-a.cancelContext.Done():
 			return
 		}
 	}
 }
-func (a *PeopleApp) handleUpdatedDevice(entityID string) {
+func (a *PeopleApp) handleUpdatedDevice(entityID string, isFromTimeout bool) {
 	// Get the person owning device
 	person := a.getPersonOwningDevice(entityID)
-	a.handleUpdatedDeviceForPerson(person)
+	a.handleUpdatedDeviceForPerson(person, isFromTimeout)
 }
 
-func (a *PeopleApp) handleUpdatedDeviceForPerson(person string) {
+func (a *PeopleApp) handleUpdatedDeviceForPerson(person string, isFromTimeout bool) {
 	// Get devices
 	devices := a.getDeviceEntities(person)
 
 	state := a.getHassDeviceState(devices)
 
 	if state != "home" {
-		if a.conf[person].State == "" ||
-			a.conf[person].State == justArrivedState ||
-			a.conf[person].State == justLeftState {
+		if a.conf[person].State == "" {
 			a.setState(person, state, devices)
+		} else if a.conf[person].State == justArrivedState ||
+			a.conf[person].State == justLeftState {
+			if isFromTimeout {
+				a.setState(person, state, devices)
+			} else {
+				// Use same state since we are not setting from timeout
+				a.setState(person, a.conf[person].State, devices)
+
+			}
+
 		} else if a.conf[person].State == homeState {
 			// We were home and just left
 			a.setState(person, justLeftState, devices)
@@ -139,8 +148,17 @@ func (a *PeopleApp) handleUpdatedDeviceForPerson(person string) {
 		}
 	} else {
 		//Home
-		if a.conf[person].State == "" || a.conf[person].State == justArrivedState || a.conf[person].State == justLeftState {
+
+		if a.conf[person].State == "" {
 			a.setState(person, state, devices)
+		} else if a.conf[person].State == justArrivedState || a.conf[person].State == justLeftState {
+			if isFromTimeout {
+				a.setState(person, state, devices)
+			} else {
+				// Use same state since we are not setting from timeout
+				a.setState(person, a.conf[person].State, devices)
+
+			}
 		} else if a.conf[person].State != homeState {
 			// We were home and just left
 			a.setState(person, justArrivedState, devices)
@@ -283,6 +301,36 @@ func (a *PeopleApp) peopleConfigured() bool {
 func (a *PeopleApp) Cancel() {
 	// Cancel the goroutine select
 	a.cancel()
+}
+
+func distance(lat1 float64, lng1 float64, lat2 float64, lng2 float64, unit ...string) float64 {
+	const PI float64 = 3.141592653589793
+
+	radlat1 := float64(PI * lat1 / 180)
+	radlat2 := float64(PI * lat2 / 180)
+
+	theta := float64(lng1 - lng2)
+	radtheta := float64(PI * theta / 180)
+
+	dist := math.Sin(radlat1)*math.Sin(radlat2) + math.Cos(radlat1)*math.Cos(radlat2)*math.Cos(radtheta)
+
+	if dist > 1 {
+		dist = 1
+	}
+
+	dist = math.Acos(dist)
+	dist = dist * 180 / PI
+	dist = dist * 60 * 1.1515
+
+	if len(unit) > 0 {
+		if unit[0] == "K" {
+			dist = dist * 1.609344
+		} else if unit[0] == "N" {
+			dist = dist * 0.8684
+		}
+	}
+
+	return dist
 }
 
 var log *logrus.Entry
