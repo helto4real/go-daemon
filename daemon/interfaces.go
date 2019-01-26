@@ -56,6 +56,14 @@ type DaemonAppHelper interface {
 		changedEntityChannel chan DaemonEntity) DaemonEntity
 	// GetPeople returns the configuration of people and their devices
 	GetPeople() map[string]*config.PeopleConfig
+
+	GetLocation() Location
+}
+
+type Location struct {
+	Longitude float64
+	Latitude  float64
+	Elevation float64
 }
 
 // DaemonApplication represents an application

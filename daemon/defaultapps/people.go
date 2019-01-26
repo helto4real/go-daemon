@@ -187,16 +187,18 @@ func (a *PeopleApp) setState(person string, state string, devices []*client.Hass
 
 	sortedDevices := devices
 	sort.Slice(sortedDevices, func(i, j int) bool { return devices[i].New.LastChanged.After(devices[j].New.LastUpdated) })
-
+	hasLocation := false
 	for _, device := range sortedDevices {
 		if device.New.Attributes["source_type"] == "gps" {
 			// Copy attributes if exists
 			longitude, ok := device.New.Attributes["longitude"]
 			if ok {
+				hasLocation = true
 				a.conf[person].Attributes["longitude"] = longitude
 			}
 			latitude, ok := device.New.Attributes["latitude"]
 			if ok {
+				hasLocation = true
 				a.conf[person].Attributes["latitude"] = latitude
 			}
 			picture, ok := device.New.Attributes["entity_picture"]
@@ -219,6 +221,14 @@ func (a *PeopleApp) setState(person string, state string, devices []*client.Hass
 		}
 	}
 	a.conf[person].Attributes["friendly_name"] = a.conf[person].FriendlyName
+	if hasLocation {
+		longitude := a.conf[person].Attributes["longitude"].(float64)
+		latitude := a.conf[person].Attributes["latitude"].(float64)
+
+		homeLocation := a.deamon.GetLocation()
+		distance := distance(latitude, longitude, homeLocation.Latitude, homeLocation.Longitude, "K")
+		a.conf[person].Attributes["distance"] = math.Round(distance)
+	}
 
 	deviceID := getDeviceID(person)
 	entity := client.NewHassEntity(deviceID, deviceID, client.HassEntityState{}, client.HassEntityState{

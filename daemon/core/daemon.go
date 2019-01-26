@@ -78,6 +78,14 @@ func (a *ApplicationDaemon) Stop() {
 
 }
 
+func (a *ApplicationDaemon) GetLocation() d.Location {
+	return d.Location{
+		Longitude: a.hassClient.GetConfig().Longitude,
+		Latitude:  a.hassClient.GetConfig().Latitude,
+		Elevation: a.hassClient.GetConfig().Elevation,
+	}
+}
+
 // AtSunset sends a message on provided channel at sunset
 //
 // You can set a positive or negative offset from sunset
