@@ -2,6 +2,8 @@ package core
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -64,6 +66,10 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant,
 		return false
 	}
 	a.config = conf
+	if a.config.HomeAssistant.IP == "hassio" {
+		// It is a hassio plugin
+		a.checkHassioOptionsConfig()
+	}
 	go a.receiveHassLoop()
 	go a.applicationDaemonLoop()
 	log.Infof("Checking token")
@@ -85,6 +91,32 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant,
 func (a *ApplicationDaemon) Stop() {
 	a.cancel()
 	a.hassClient.Stop()
+
+}
+
+var optionsPath = "/data/options.json"
+
+func (a *ApplicationDaemon) checkHassioOptionsConfig() {
+
+	confBytes, err := ioutil.ReadFile(fmt.Sprintf(optionsPath))
+	if err != nil {
+		log.Errorln(err)
+		return
+	}
+	result := &config.HassioOptionsConfig{}
+	err = json.Unmarshal(confBytes, result)
+	if err != nil {
+		log.Errorln(err)
+		return
+	}
+	a.config.People = map[string]*config.PeopleConfig{}
+	for _, person := range result.Persons {
+		a.config.People[person.ID] = &config.PeopleConfig{
+			FriendlyName: person.FriendlyName,
+			Devices:      person.Devices,
+			Attributes:   map[string]interface{}{},
+		}
+	}
 
 }
 

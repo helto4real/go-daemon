@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	d "github.com/helto4real/go-daemon/daemon"
+	"github.com/helto4real/go-daemon/daemon/config"
 	h "github.com/helto4real/go-daemon/daemon/test"
 	"github.com/helto4real/go-hassclient/client"
 	"github.com/sirupsen/logrus"
@@ -110,6 +111,23 @@ func TestHandleEntityFullChannel(t *testing.T) {
 
 	<-daemon.stateListeners["light.testentity"][0]
 	h.Equals(t, true, strings.Contains(mockStdErr.String(), "Channel full, please check recevicer channel"))
+
+}
+
+func TestCheckHassioOptionsConfig(t *testing.T) {
+	oldOptionsPath := optionsPath
+	defer func() { optionsPath = oldOptionsPath }()
+	optionsPath = "testdata/options.json"
+	daemon := ApplicationDaemon{
+		stateListeners: map[string][]chan client.HassEntity{
+			"light.testentity": []chan client.HassEntity{
+				make(chan client.HassEntity, 1)}},
+		cancelContext: context.Background(),
+		config:        &config.Config{}}
+	daemon.checkHassioOptionsConfig()
+
+	h.Equals(t, len(daemon.config.People), 2)
+	// h.Equals(t, err.Error(), "yaml: line 3: mapping values are not allowed in this context")
 
 }
 

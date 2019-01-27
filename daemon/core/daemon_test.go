@@ -423,3 +423,6 @@ func (a *fakeHomeAssistant) GetHassChannel() chan interface{} {
 func (a *fakeHomeAssistant) GetStatusChannel() chan bool {
 	return a.statusChannel
 }
+func (a *fakeHomeAssistant) GetConfig() *client.HassConfig {
+	return &client.HassConfig{}
+}
