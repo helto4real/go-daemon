@@ -81,7 +81,6 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant,
 		}
 		conf.HomeAssistant.Token = envHassioToken
 	}
-	log.Infof("TOKEN IS: %s", conf.HomeAssistant.Token)
 	a.hassClient.Start(conf.HomeAssistant.IP, conf.HomeAssistant.SSL, conf.HomeAssistant.Token)
 
 	return true
