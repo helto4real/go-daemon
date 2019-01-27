@@ -14,6 +14,10 @@ var log *logrus.Entry
 func main() {
 
 	log.Println("Starting go-daemon hassio plugin....")
+
+	for _, env := range os.Environ() {
+		log.Info(env)
+	}
 	osSignal := make(chan os.Signal, 1)
 	daemon := c.NewApplicationDaemon()
 	hass := client.NewHassClient()
