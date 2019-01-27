@@ -13,11 +13,8 @@ var log *logrus.Entry
 
 func main() {
 
-	log.Println("Starting go-daemon hassio plugin....")
+	log.Println("Starting go-daemon hassio plugin...")
 
-	for _, env := range os.Environ() {
-		log.Info(env)
-	}
 	osSignal := make(chan os.Signal, 1)
 	daemon := c.NewApplicationDaemon()
 	hass := client.NewHassClient()
@@ -37,8 +34,10 @@ func init() {
 	Formatter := new(prefixed.TextFormatter)
 	Formatter.FullTimestamp = true
 	Formatter.TimestampFormat = "2006-01-02 15:04:05"
+	Formatter.DisableColors = true
 	Formatter.ForceColors = false
-	Formatter.ForceFormatting = false
+	Formatter.ForceFormatting = true
 	logrus.SetFormatter(Formatter)
-	log.Level = logrus.TraceLevel
+	logrus.SetLevel(logrus.InfoLevel)
+
 }

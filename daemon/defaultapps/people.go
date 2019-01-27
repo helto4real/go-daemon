@@ -236,7 +236,7 @@ func (a *PeopleApp) setState(person string, state string, devices []*client.Hass
 		Attributes: a.conf[person].Attributes,
 	})
 	a.deamon.SetEntity(entity)
-	log.Warn(entity)
+	log.Debugln(entity)
 }
 func getDeviceID(person string) string {
 	return "sensor." + strings.ToLower(person) + "_presence"

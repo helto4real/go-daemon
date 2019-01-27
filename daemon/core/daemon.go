@@ -117,7 +117,20 @@ func (a *ApplicationDaemon) checkHassioOptionsConfig() {
 			Attributes:   map[string]interface{}{},
 		}
 	}
-
+	// Set the correct logger level
+	if result.LogLevel == "debug" {
+		logrus.SetLevel(logrus.DebugLevel)
+	} else if result.LogLevel == "info" {
+		logrus.SetLevel(logrus.InfoLevel)
+	} else if result.LogLevel == "info" {
+		logrus.SetLevel(logrus.TraceLevel)
+	} else if result.LogLevel == "warning" {
+		logrus.SetLevel(logrus.WarnLevel)
+	} else if result.LogLevel == "error" {
+		logrus.SetLevel(logrus.ErrorLevel)
+	} else if result.LogLevel == "fatal" {
+		logrus.SetLevel(logrus.FatalLevel)
+	}
 }
 
 func (a *ApplicationDaemon) GetLocation() d.Location {
