@@ -52,11 +52,14 @@ type DaemonAppHelper interface {
 	// You can set a positive or negative offset from sunset
 	AtSunrise(offset time.Duration, sunriseChannel chan bool) *time.Timer
 
+	// NewEntity returns a new entity instance
 	NewEntity(id string, daemonHelper DaemonAppHelper, autoRespondServiceCall bool,
 		changedEntityChannel chan DaemonEntity) DaemonEntity
+
 	// GetPeople returns the configuration of people and their devices
 	GetPeople() map[string]*config.PeopleConfig
 
+	// GetLocation returns the home location of the hass instance
 	GetLocation() Location
 }
 
