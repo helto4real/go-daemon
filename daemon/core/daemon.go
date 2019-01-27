@@ -66,6 +66,14 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant,
 	a.config = conf
 	go a.receiveHassLoop()
 	go a.applicationDaemonLoop()
+	if len(conf.HomeAssistant.Token) == 0 {
+		// Check if we have hassio env set
+		envHassioToken := os.Getenv("HASSIO_TOKEN")
+		if len(envHassioToken) == 0 {
+			log.Warn("Token empty and hassio token not present. API wont be accessable if anonomous access not allowed!")
+		}
+		conf.HomeAssistant.Token = envHassioToken
+	}
 	a.hassClient.Start(conf.HomeAssistant.IP, conf.HomeAssistant.SSL, conf.HomeAssistant.Token)
 
 	return true
