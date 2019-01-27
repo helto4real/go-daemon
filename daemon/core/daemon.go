@@ -66,6 +66,7 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant,
 	a.config = conf
 	go a.receiveHassLoop()
 	go a.applicationDaemonLoop()
+	log.Infof("Checking token")
 	if len(conf.HomeAssistant.Token) == 0 {
 		// Check if we have hassio env set
 		envHassioToken := os.Getenv("HASSIO_TOKEN")
@@ -74,6 +75,7 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant,
 		}
 		conf.HomeAssistant.Token = envHassioToken
 	}
+	log.Infof("TOKEN IS: %s", conf.HomeAssistant.Token)
 	a.hassClient.Start(conf.HomeAssistant.IP, conf.HomeAssistant.SSL, conf.HomeAssistant.Token)
 
 	return true
