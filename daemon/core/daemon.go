@@ -120,7 +120,7 @@ func (a *ApplicationDaemon) checkHassioOptionsConfig() {
 		logrus.SetLevel(logrus.DebugLevel)
 	} else if result.LogLevel == "info" {
 		logrus.SetLevel(logrus.InfoLevel)
-	} else if result.LogLevel == "info" {
+	} else if result.LogLevel == "trace" {
 		logrus.SetLevel(logrus.TraceLevel)
 	} else if result.LogLevel == "warning" {
 		logrus.SetLevel(logrus.WarnLevel)
