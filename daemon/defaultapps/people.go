@@ -257,7 +257,27 @@ func (a *PeopleApp) getHassDeviceState(devices []*client.HassEntity) string {
 			}
 		}
 	}
-	return sortedDevices[0].New.State
+
+	return translateState(sortedDevices[0].New.State)
+}
+
+func translateState(state string) string {
+	stateLower := strings.ToLower(state)
+
+	if stateLower == "home" {
+		return "home"
+	} else if stateLower == "not_home" {
+		return "not_home"
+	} else if stateLower == "on" {
+		return "home"
+	} else if stateLower == "off" {
+		return "not_home"
+	} else if stateLower == "true" {
+		return "home"
+	} else if stateLower == "false" {
+		return "not_home"
+	}
+	return stateLower
 }
 
 func (a *PeopleApp) getPersonOwningDevice(device string) string {
