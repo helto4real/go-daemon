@@ -277,7 +277,7 @@ func translateState(state string) string {
 	} else if stateLower == "false" {
 		return "not_home"
 	}
-	return stateLower
+	return state
 }
 
 func (a *PeopleApp) getPersonOwningDevice(device string) string {
