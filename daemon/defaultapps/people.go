@@ -249,8 +249,7 @@ func (a *PeopleApp) getHassDeviceState(devices []*client.HassEntity) string {
 	for _, device := range sortedDevices {
 		sourceType, ok := device.New.Attributes["source_type"]
 		if ok {
-			if device.New.State == "home" &&
-				(sourceType == "bluetooth" || sourceType == "router") {
+			if device.New.State == "home" && sourceType != "gps" {
 				// Ether bt or wifi are home, device always home, this will make
 				// the tracking alot more stable
 				return "home"
