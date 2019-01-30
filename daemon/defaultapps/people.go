@@ -123,14 +123,12 @@ func (a *PeopleApp) handleUpdatedDeviceForPerson(person string, isFromTimeout bo
 	if state != "home" {
 		if a.conf[person].State == "" {
 			a.setState(person, state, devices)
-		} else if a.conf[person].State == justArrivedState ||
-			a.conf[person].State == justLeftState {
+		} else if a.conf[person].State == justLeftState {
 			if isFromTimeout {
 				a.setState(person, state, devices)
 			} else {
 				// Use same state since we are not setting from timeout
 				a.setState(person, a.conf[person].State, devices)
-
 			}
 
 		} else if a.conf[person].State == homeState {
@@ -151,7 +149,7 @@ func (a *PeopleApp) handleUpdatedDeviceForPerson(person string, isFromTimeout bo
 
 		if a.conf[person].State == "" {
 			a.setState(person, state, devices)
-		} else if a.conf[person].State == justArrivedState || a.conf[person].State == justLeftState {
+		} else if a.conf[person].State == justArrivedState {
 			if isFromTimeout {
 				a.setState(person, state, devices)
 			} else {
