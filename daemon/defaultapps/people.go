@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	justArrivedState string        = "Just Arrived"
-	justLeftState    string        = "Just Left"
+	justArrivedState string        = "Just arrived"
+	justLeftState    string        = "Just left"
 	homeState        string        = "Home"
 	awayState        string        = "Away"
 	justTimer        time.Duration = 300 //5 minutes
@@ -245,17 +245,46 @@ func (a *PeopleApp) getHassDeviceState(devices []*client.HassEntity) string {
 	sort.Slice(sortedDevices, func(i, j int) bool { return devices[i].New.LastChanged.After(devices[j].New.LastChanged) })
 
 	for _, device := range sortedDevices {
-		sourceType, ok := device.New.Attributes["source_type"]
-		if ok {
-			if device.New.State == "home" && sourceType != "gps" {
-				// Ether bt or wifi are home, device always home, this will make
-				// the tracking alot more stable
+		if translateState(device.New.State) == "home" {
+			sourceType, ok := device.New.Attributes["source_type"]
+			if ok {
+				if sourceType != "gps" {
+					// Ether bt or wifi are home, device always home, this will make
+					// the tracking alot more stable
+					return "home"
+				} else if time.Now().UTC().Sub(device.New.LastUpdated).Minutes() < 60 {
+					// If the gps device was updated recently if the gps is not reporting
+					// and last state was "home" we want to avoid getting stuck at home
+					return "home"
+				}
+			} else {
+				// No attributes, it is not a gps device
 				return "home"
 			}
 		}
 	}
 
+	// If we reached this point all devices are considered not_home
+	// Get the state from gps device
+	gpsDevice := getGpsSourceTypeDevice(sortedDevices)
+
+	if gpsDevice != nil {
+		// Return the gps device state
+		return translateState(gpsDevice.New.State)
+	}
+	// Just return the last changed device state
 	return translateState(sortedDevices[0].New.State)
+}
+
+func getGpsSourceTypeDevice(devices []*client.HassEntity) *client.HassEntity {
+	// None of the devices is home, take value from gps device
+	for _, device := range devices {
+		sourceType, ok := device.New.Attributes["source_type"]
+		if ok && sourceType == "gps" {
+			return device
+		}
+	}
+	return nil
 }
 
 func translateState(state string) string {
