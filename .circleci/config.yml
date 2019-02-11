@@ -28,7 +28,9 @@ jobs: # basic units of work in a run
       # Normally, this step would be in a custom primary image;
       # we've added it here for the sake of explanation.
       - run: GOOS=windows go get github.com/konsorten/go-windows-terminal-sequences
-      - run: go get github.com/mitchellh/gox
+      - run: go get github.com/mitchellh/gox 
+      - run: go get golang.org/x/tools/cmd/cover
+      - run: go get github.com/mattn/goveralls
       - run: go get ./...
 
       - run:
