@@ -1,0 +1,27 @@
+# Standard case, starting all people home
+people:
+  person1:
+    friendly_name: person1Friendly
+    devices:
+      - "device_tracker.bt"
+      - "device_tracker.gps"
+      - "device_tracker.wifi"
+
+# Default settings for the devices
+devices:
+  # Person 1, not home -> Away
+  device_tracker.gps:
+    state: "not_home"
+    attributes:
+      source_type: "gps"
+      longitude: 2.0
+      latitude: 2.0
+      address: "address1"
+      battery_level: 100
+      entity_picture: "pic1"
+      gps_accuracy: 10
+  device_tracker.bt:
+    state: "not_home"
+  device_tracker.wifi:
+    state: "not_home"
+  

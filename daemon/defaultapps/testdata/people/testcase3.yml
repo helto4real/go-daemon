@@ -1,0 +1,35 @@
+# Standard case, starting all people home
+people:
+  person1:
+    friendly_name: person1Friendly
+    devices:
+      - "device_tracker.on_device"
+  person2:
+    friendly_name: person2Friendly
+    devices:
+      - "device_tracker.off_device"
+  person3:
+    friendly_name: person3Friendly
+    devices:
+      - "device_tracker.true_device"
+  person4:
+    friendly_name: person4Friendly
+    devices:
+      - "device_tracker.false_device"
+  person5:
+    friendly_name: person5Friendly
+    devices:
+      - "device_tracker.unknown_device"
+# Default settings for the devices
+devices:
+  # Person 1, test all home are home
+  device_tracker.on_device:
+    state: "on"
+  device_tracker.off_device:
+    state: "off"
+  device_tracker.true_device:
+    state: "true"
+  device_tracker.false_device:
+    state: "false"
+  device_tracker.unknown_device:
+    state: "somestate"

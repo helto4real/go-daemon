@@ -314,7 +314,7 @@ func (a *PeopleApp) getPersonOwningDevice(device string) string {
 			}
 		}
 	}
-	log.Panicf("Device unknown, please check configuration [%s]", device)
+	log.Errorf("Device unknown, please check configuration [%s]", device)
 	return ""
 }
 
