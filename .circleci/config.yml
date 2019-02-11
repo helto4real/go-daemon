@@ -34,9 +34,10 @@ jobs: # basic units of work in a run
           name: test
           command: |
             mkdir -p $GOCACHE
-            gox -os="linux darwin windows" -arch="amd64" -output="${BUILD_DIR}/go-daemon_{{.OS}}_{{.Arch}}"
+            go build -v
             go test -p 6 -race ./...
 
+      - run: gox -os="linux darwin windows" -arch="amd64" -output="${BUILD_DIR}/go-daemon_{{.OS}}_{{.Arch}}"
       # - run: go test -v -covermode=count -coverprofile=coverage.out ./...
       # - run: go get github.com/mattes/migrate
       # - run: go get github.com/jstemmer/go-junit-report
