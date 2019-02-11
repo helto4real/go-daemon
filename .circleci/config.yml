@@ -14,10 +14,11 @@ jobs: # basic units of work in a run
 
     environment: # environment variables for the build itself
       - GOCACHE: "/tmp/go/cache"
+      - BUILD_DIR: "/tmp/build"
 
     steps: # steps that comprise the `build` job
       - checkout # check out source code to working directory
-      # - run: mkdir -p $TEST_RESULTS # create the test results directory
+      - run: mkdir -p BUILD_DIR # create the test results directory
 
       - restore_cache: # restores saved cache if no changes are detected since last run
       # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
@@ -27,12 +28,13 @@ jobs: # basic units of work in a run
       # Normally, this step would be in a custom primary image;
       # we've added it here for the sake of explanation.
       - run: go get ./...
+      - run: go get github.com/mitchellh/gox
 
       - run:
           name: test
           command: |
             mkdir -p $GOCACHE
-            go build -v
+            gox -os="linux darwin windows" -arch="amd64" -output="${BUILD_DIR}/go-daemon_{{.OS}}_{{.Arch}}"
             go test -p 6 -race ./...
 
       # - run: go test -v -covermode=count -coverprofile=coverage.out ./...
@@ -84,8 +86,8 @@ jobs: # basic units of work in a run
       #       curl --retry 10 --retry-delay 1 -X POST --header "Content-Type: application/json" -d '{"email":"test@example.com","name":"Test User"}' http://localhost:8080/contacts
 
       - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-          path: go-daemon
-          destination: go-daemon
+          path: ${BUILD_DIR}
+          destination: builds
 
       # - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
       #     path: /tmp/test-results
