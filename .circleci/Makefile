@@ -11,7 +11,7 @@ build: workdir/daemon
 build-native: $(GOFILES)
 	go build -o workdir/native-daemon .
 
-workdir/contacts: $(GOFILES)
+workdir/daemon: $(GOFILES)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o workdir/daemon .
 
 test: test-all
