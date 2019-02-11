@@ -56,10 +56,10 @@ jobs: # basic units of work in a run
 
       # - run: make # pull and build dependencies for the project
 
-      # - save_cache: # Store cache in the /go/pkg directory
-      #     key: v1-pkg-cache
-      #     paths:
-      #       - "/go/pkg"
+      - save_cache: # Store cache in the /go/pkg directory
+          key: v1-pkg-cache
+          paths:
+            - "/go/pkg"
 
       # - run:
       #     name: Start service
