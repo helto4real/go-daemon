@@ -10,7 +10,7 @@ jobs: # basic units of work in a run
       #     POSTGRES_USER: circleci-demo-go
       #     POSTGRES_DB: circle_test
     # directory where steps are run. Path must conform to the Go Workspace requirements
-    working_directory: /go/src/github.com/helto4real/go-daemon/hassio
+    working_directory: /go/src/github.com/helto4real/go-daemon
 
     environment: # environment variables for the build itself
       - GOCACHE: "/tmp/go/cache"
@@ -28,6 +28,7 @@ jobs: # basic units of work in a run
       # we've added it here for the sake of explanation.
       - run: go get ./...
 
+      - run: cd hassio
       - run:
           name: test
           command: |
