@@ -25,12 +25,13 @@ import (
 )
 
 const (
-	justArrivedState string        = "Just arrived"
-	justLeftState    string        = "Just left"
-	homeState        string        = "Home"
-	awayState        string        = "Away"
-	justTimer        time.Duration = 300 //5 minutes
+	justArrivedState string = "Just arrived"
+	justLeftState    string = "Just left"
+	homeState        string = "Home"
+	awayState        string = "Away"
 )
+
+var justTimer time.Duration = 300 //5 minutes
 
 type personState struct {
 	state      string
@@ -173,6 +174,7 @@ func (a *PeopleApp) handleUpdatedDeviceForPerson(person string, isFromTimeout bo
 
 }
 func (a *PeopleApp) setState(person string, state string, devices []*client.HassEntity) {
+
 	var personState string
 	if state == "home" {
 		personState = homeState

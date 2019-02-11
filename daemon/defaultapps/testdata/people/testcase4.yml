@@ -1,0 +1,18 @@
+# Tests Just arrived and Just left states
+people:
+  person1:
+    friendly_name: person1Friendly
+    state: "Away"
+    devices:
+      - "device_tracker.dev1"
+  person2:
+    friendly_name: person2Friendly
+    state: "Home"
+    devices:
+      - "device_tracker.dev2"
+# Default settings for the devices
+devices:
+  device_tracker.dev1:
+    state: "home"
+  device_tracker.dev2:
+    state: "not_home"
