@@ -39,7 +39,7 @@ jobs: # basic units of work in a run
             mkdir -p $GOCACHE
             gox -os="linux darwin windows" -arch="amd64" -output="builds/go-daemon_{{.OS}}_{{.Arch}}"
             # One for race
-            go test -p 6 -v -cover -race -coverprofile=builds/coverage.out
+            go test -p 6 -v -cover -race -coverprofile=builds/coverage.out ./...
             # One for cover count for coveralls
             #go test -covermode=count -coverprofile=builds/coverage.out ./...
 
