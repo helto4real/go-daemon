@@ -83,9 +83,9 @@ jobs: # basic units of work in a run
       #       sleep 5
       #       curl --retry 10 --retry-delay 1 -X POST --header "Content-Type: application/json" -d '{"email":"test@example.com","name":"Test User"}' http://localhost:8080/contacts
 
-      # - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-      #     path: /tmp/test-results
-      #     destination: raw-test-output
+      - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: /go-daemon
+          destination: go-daemon
 
       # - store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
       #     path: /tmp/test-results
