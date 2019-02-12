@@ -21,13 +21,13 @@ func TestGetAllApplicationConfigFilePaths(t *testing.T) {
 	h.NotEquals(t, nil, x)
 }
 
-func TestNewApplicationDaemon(t *testing.T) {
-	d := c.NewApplicationDaemon()
+func TestNewApplicationDaemonRunner(t *testing.T) {
+	d := c.NewApplicationDaemonRunner()
 	h.NotEquals(t, nil, d)
 }
 
 func TestStartAndStop(t *testing.T) {
-	d := c.NewApplicationDaemon()
+	d := c.NewApplicationDaemonRunner()
 
 	fake := newFakeHomeAssistant()
 	defer func() {
@@ -40,7 +40,7 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestStartFailConfigNotExist(t *testing.T) {
-	d := c.NewApplicationDaemon()
+	d := c.NewApplicationDaemonRunner()
 
 	fake := newFakeHomeAssistant()
 
@@ -51,7 +51,7 @@ func TestStartFailConfigNotExist(t *testing.T) {
 }
 
 func TestBasicDeamonHelperFunctions(t *testing.T) {
-	d := c.NewApplicationDaemon()
+	d := c.NewApplicationDaemonRunner()
 
 	fake := newFakeHomeAssistant()
 
@@ -70,7 +70,7 @@ func TestBasicDeamonHelperFunctions(t *testing.T) {
 }
 
 func TestBasicGetEntity(t *testing.T) {
-	d := c.NewApplicationDaemon()
+	d := c.NewApplicationDaemonRunner()
 	hlpr := d.(de.DaemonAppHelper)
 
 	defer d.Stop()
@@ -85,7 +85,7 @@ func TestBasicGetEntity(t *testing.T) {
 }
 
 func TestAtSunset(t *testing.T) {
-	d := c.NewApplicationDaemon()
+	d := c.NewApplicationDaemonRunner()
 	hlpr := d.(de.DaemonAppHelper)
 
 	fake := newFakeHomeAssistant()
@@ -102,7 +102,7 @@ func TestAtSunset(t *testing.T) {
 }
 
 func TestAtSunsetErrors(t *testing.T) {
-	d := c.NewApplicationDaemon()
+	d := c.NewApplicationDaemonRunner()
 	hlpr := d.(de.DaemonAppHelper)
 
 	fake := newFakeHomeAssistant()
@@ -145,7 +145,7 @@ func TestAtSunsetErrors(t *testing.T) {
 }
 
 func TestAtSunRise(t *testing.T) {
-	d := c.NewApplicationDaemon()
+	d := c.NewApplicationDaemonRunner()
 	hlpr := d.(de.DaemonAppHelper)
 
 	fake := newFakeHomeAssistant()
@@ -161,7 +161,7 @@ func TestAtSunRise(t *testing.T) {
 
 }
 func TestAtSunriseErrors(t *testing.T) {
-	d := c.NewApplicationDaemon()
+	d := c.NewApplicationDaemonRunner()
 	hlpr := d.(de.DaemonAppHelper)
 
 	fake := newFakeHomeAssistant()
@@ -204,7 +204,7 @@ func TestAtSunriseErrors(t *testing.T) {
 }
 
 func TestListenState(t *testing.T) {
-	d := c.NewApplicationDaemon()
+	d := c.NewApplicationDaemonRunner()
 	hlpr := d.(de.DaemonAppHelper)
 	fake := newFakeHomeAssistant()
 
@@ -246,7 +246,7 @@ func TestListenState(t *testing.T) {
 }
 
 // func TestLoadAndUnloadApplications(t *testing.T) {
-// 	d := c.NewApplicationDaemon()
+// 	d := c.NewApplicationDaemonRunner()
 // 	//hlpr := d.(daemon.DaemonAppHelper)
 
 // 	fake := newFakeHomeAssistant()
@@ -307,7 +307,7 @@ func TestStartFailMalformatedConfig(t *testing.T) {
 		logrus.SetOutput(os.Stderr)
 	}()
 
-	d := c.NewApplicationDaemon()
+	d := c.NewApplicationDaemonRunner()
 
 	fake := newFakeHomeAssistant()
 

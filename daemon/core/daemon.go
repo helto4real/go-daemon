@@ -43,20 +43,30 @@ type ApplicationDaemon struct {
 	callServiceEventListeners map[string]map[string][]chan client.HassCallServiceEvent
 }
 
+func NewApplicationDaemonRunner() d.ApplicationDaemonRunner {
+	return NewApplicationDaemon()
+}
+
+func NewApplicationDaemon() *ApplicationDaemon {
+	appdaemon := &ApplicationDaemon{}
+	ctx, cancel := context.WithCancel(context.Background())
+	appdaemon.commandChannel = make(chan DaemonCommand)
+	appdaemon.cancelContext = ctx
+	appdaemon.cancel = cancel
+	appdaemon.applications = []d.DaemonApplication{}
+
+	appdaemon.stateListeners = make(map[string][]chan client.HassEntity)
+	appdaemon.callServiceEventListeners =
+		make(map[string]map[string][]chan client.HassCallServiceEvent)
+
+	return appdaemon
+}
+
 // Start the daemon, use in main function
 func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant, availableApps map[string]interface{}) bool {
 	a.hassClient = hassClient
-	ctx, cancel := context.WithCancel(context.Background())
-	a.commandChannel = make(chan DaemonCommand)
-	a.cancelContext = ctx
-	a.cancel = cancel
 	a.configPath = configPath
-	a.applications = []d.DaemonApplication{}
 	a.availableApps = availableApps
-
-	a.stateListeners = make(map[string][]chan client.HassEntity)
-	a.callServiceEventListeners =
-		make(map[string]map[string][]chan client.HassCallServiceEvent)
 
 	configuration := config.NewConfiguration(filepath.Join(configPath, "go-daemon.yaml"))
 	conf, err := configuration.Open()
@@ -274,10 +284,6 @@ func (a *ApplicationDaemon) ListenState(entity string, stateChannel chan client.
 
 	// Add the new channel
 	a.stateListeners[entityLower] = append(stateChannels, stateChannel)
-}
-
-func NewApplicationDaemon() d.ApplicationDaemonRunner {
-	return &ApplicationDaemon{}
 }
 
 // GetCancelContext gets the context for goroutines to use as cancel context

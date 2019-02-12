@@ -15,7 +15,7 @@ func main() {
 
 	log.Println("Starting go-daemon..")
 	osSignal := make(chan os.Signal, 1)
-	daemon := c.NewApplicationDaemon()
+	daemon := c.NewApplicationDaemonRunner()
 	hass := client.NewHassClient()
 	// Apps is defined in the apps.go file
 	daemon.Start(".", hass, apps)

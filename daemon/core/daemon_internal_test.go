@@ -131,6 +131,38 @@ func TestCheckHassioOptionsConfig(t *testing.T) {
 
 }
 
+func TestListenCallServiceEvent(t *testing.T) {
+	daemon := NewApplicationDaemon()
+	callServiceEvent := make(chan client.HassCallServiceEvent, 2)
+	daemon.ListenCallServiceEvent("domain1", "service1", callServiceEvent)
+
+	_, ok := daemon.callServiceEventListeners["domain1"]
+	h.Equals(t, ok, true)
+	_, ok = daemon.callServiceEventListeners["domain1"]["service1"]
+	h.Equals(t, ok, true)
+}
+
+func TestListenCallServiceEventAlreadyRegistered(t *testing.T) {
+	daemon := NewApplicationDaemon()
+	callServiceEvent := make(chan client.HassCallServiceEvent, 2)
+	mockStdErr := strings.Builder{}
+	logrus.SetOutput(&mockStdErr)
+	level := logrus.GetLevel()
+	logrus.SetLevel(logrus.DebugLevel)
+	defer func() {
+		os.Stderr.WriteString(mockStdErr.String())
+		logrus.SetOutput(os.Stderr)
+		logrus.SetLevel(level)
+	}()
+	daemon.ListenCallServiceEvent("domain1", "service1", callServiceEvent)
+	daemon.ListenCallServiceEvent("domain1", "service1", callServiceEvent)
+
+	s := mockStdErr.String()
+	log.Print(s)
+	h.Equals(t, true, strings.Contains(mockStdErr.String(), "ListenCallServiceEvent: Already registered on"))
+
+}
+
 type testapp struct {
 }
 
