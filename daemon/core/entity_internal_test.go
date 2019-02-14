@@ -54,9 +54,7 @@ func TestNewEntityFromChannel(t *testing.T) {
 			Attributes: map[string]interface{}{"latitude": 5.0},
 		})
 
-	time.Sleep(time.Millisecond * 100)
-	fake.confMutex.Lock()
-	defer fake.confMutex.Unlock()
+	<-changedEntityChannel
 
 	h.Equals(t, 5.0, entity.Entity().New.Attributes["latitude"])
 }
@@ -184,6 +182,9 @@ func (a *fakeDaemonAppHelper) GetLocation() d.Location {
 }
 
 func (a *fakeDaemonAppHelper) loadTestCase(filename string) {
+	a.confMutex.Lock()
+	defer a.confMutex.Unlock()
+
 	caseData := testCaseConfig{}
 	data, error := ioutil.ReadFile(path.Join("testdata/people", filename))
 	if error != nil {
