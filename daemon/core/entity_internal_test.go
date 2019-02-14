@@ -15,14 +15,50 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-func TestSomething(t *testing.T) {
+func TestNewEntity(t *testing.T) {
 	fake := newFakeDaemonHelperTestCase("testcase1.yml") //.(d.DaemonAppHelper)
 
 	changedEntityChannel := make(chan d.DaemonEntity)
-	entity := NewEntity("device_tracker.bt", fake, false, changedEntityChannel)
+	entity := NewEntity("device_tracker.gps", fake, false, changedEntityChannel)
 
-	h.Equals(t, "device_tracker.bt", entity.ID())
+	h.Equals(t, "device_tracker.gps", entity.ID())
+	h.Equals(t, "gps", entity.Attributes()["source_type"])
+	h.Equals(t, "device_tracker.gps", entity.Entity().Name)
 	fake.cancel()
+}
+
+func TestNewEntityUnknown(t *testing.T) {
+	fake := newFakeDaemonHelperTestCase("testcase1.yml") //.(d.DaemonAppHelper)
+
+	changedEntityChannel := make(chan d.DaemonEntity)
+	entity := NewEntity("sensor.not_exist", fake, false, changedEntityChannel)
+
+	h.Equals(t, "sensor.not_exist", entity.ID())
+	h.Equals(t, "unknown", entity.State())
+	fake.cancel()
+}
+
+func TestNewEntityFromChannel(t *testing.T) {
+	fake := newFakeDaemonHelperTestCase("testcase1.yml") //.(d.DaemonAppHelper)
+	defer fake.cancel()
+
+	changedEntityChannel := make(chan d.DaemonEntity, 2)
+	entity := NewEntity("device_tracker.gps", fake, false, changedEntityChannel)
+
+	fake.stateChannel <- *client.NewHassEntity(
+		entity.ID(),
+		entity.ID(),
+		client.HassEntityState{},
+		client.HassEntityState{
+			State:      "NewState",
+			Attributes: map[string]interface{}{"latitude": 5.0},
+		})
+
+	time.Sleep(time.Millisecond * 100)
+	fake.confMutex.Lock()
+	defer fake.confMutex.Unlock()
+
+	h.Equals(t, 5.0, entity.Entity().New.Attributes["latitude"])
 }
 
 type fakeDaemonAppHelper struct {
@@ -33,6 +69,7 @@ type fakeDaemonAppHelper struct {
 	setEntity        int
 	fakePeopleConfig map[string]*config.PeopleConfig
 	fakeDevices      map[string]*client.HassEntity
+	stateChannel     chan client.HassEntity
 	confMutex        *sync.Mutex
 }
 
@@ -81,7 +118,7 @@ func (a *fakeDaemonAppHelper) GetEntity(entity string) (*client.HassEntity, bool
 	if a.fakeDevices != nil && len(a.fakeDevices) > 0 {
 		enityFromTestCase, ok := a.fakeDevices[entity]
 		if !ok {
-			panic("failed to get device " + entity)
+			return nil, false
 		}
 		return enityFromTestCase, true
 	}
@@ -114,6 +151,7 @@ func (a *fakeDaemonAppHelper) ListenCallServiceEvent(domain string, service stri
 
 func (a *fakeDaemonAppHelper) ListenState(entity string, stateChannel chan client.HassEntity) {
 	a.listenState = a.listenState + 1
+	a.stateChannel = stateChannel
 }
 
 func (a *fakeDaemonAppHelper) AtSunset(offset time.Duration, sunsetChannel chan bool) *time.Timer {
