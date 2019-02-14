@@ -117,7 +117,7 @@ func TestHandleEntityFullChannel(t *testing.T) {
 func TestCheckHassioOptionsConfig(t *testing.T) {
 	oldOptionsPath := optionsPath
 	defer func() { optionsPath = oldOptionsPath }()
-	optionsPath = "testdata/options.json"
+	optionsPath = "testdata/options/options.json"
 	daemon := ApplicationDaemon{
 		stateListeners: map[string][]chan client.HassEntity{
 			"light.testentity": []chan client.HassEntity{
@@ -127,8 +127,41 @@ func TestCheckHassioOptionsConfig(t *testing.T) {
 	daemon.checkHassioOptionsConfig()
 
 	h.Equals(t, len(daemon.config.People), 2)
-	// h.Equals(t, err.Error(), "yaml: line 3: mapping values are not allowed in this context")
+	h.Equals(t, logrus.GetLevel(), logrus.InfoLevel)
+}
 
+func TestCheckHassioOptionsConfigLogLevels(t *testing.T) {
+	oldOptionsPath := optionsPath
+	defer func() { optionsPath = oldOptionsPath }()
+	oldLogLevel := logrus.GetLevel()
+	defer logrus.SetLevel(oldLogLevel)
+
+	daemon := ApplicationDaemon{
+		stateListeners: map[string][]chan client.HassEntity{
+			"light.testentity": []chan client.HassEntity{
+				make(chan client.HassEntity, 1)}},
+		cancelContext: context.Background(),
+		config:        &config.Config{}}
+
+	optionsPath = "testdata/options/options-debug.json"
+	daemon.checkHassioOptionsConfig()
+	h.Equals(t, logrus.GetLevel(), logrus.DebugLevel)
+
+	optionsPath = "testdata/options/options-trace.json"
+	daemon.checkHassioOptionsConfig()
+	h.Equals(t, logrus.GetLevel(), logrus.TraceLevel)
+
+	optionsPath = "testdata/options/options-warning.json"
+	daemon.checkHassioOptionsConfig()
+	h.Equals(t, logrus.GetLevel(), logrus.WarnLevel)
+
+	optionsPath = "testdata/options/options-error.json"
+	daemon.checkHassioOptionsConfig()
+	h.Equals(t, logrus.GetLevel(), logrus.ErrorLevel)
+
+	optionsPath = "testdata/options/options-fatal.json"
+	daemon.checkHassioOptionsConfig()
+	h.Equals(t, logrus.GetLevel(), logrus.FatalLevel)
 }
 
 func TestListenCallServiceEvent(t *testing.T) {

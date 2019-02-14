@@ -144,6 +144,23 @@ func TestAtSunsetErrors(t *testing.T) {
 	h.Equals(t, true, strings.Contains(mockStdErr.String(), "We are before in time, adding 24 hours"))
 }
 
+func TestGetLocation(t *testing.T) {
+	d := c.NewApplicationDaemonRunner()
+	hlpr := d.(de.DaemonAppHelper)
+
+	fake := newFakeHomeAssistant()
+
+	defer d.Stop()
+	d.Start("testdata/ok", fake, newAvailableApps())
+
+	location := hlpr.GetLocation()
+
+	h.Equals(t, 3.0, location.Latitude)
+	h.Equals(t, 2.0, location.Longitude)
+
+	h.Equals(t, 50.0, location.Elevation)
+}
+
 func TestAtSunRise(t *testing.T) {
 	d := c.NewApplicationDaemonRunner()
 	hlpr := d.(de.DaemonAppHelper)
@@ -438,5 +455,9 @@ func (a *fakeHomeAssistant) GetStatusChannel() chan bool {
 	return a.statusChannel
 }
 func (a *fakeHomeAssistant) GetConfig() *client.HassConfig {
-	return &client.HassConfig{}
+	return &client.HassConfig{
+		Latitude:  3.0,
+		Longitude: 2.0,
+		Elevation: 50.0,
+	}
 }
