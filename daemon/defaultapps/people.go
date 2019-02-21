@@ -239,7 +239,7 @@ func (a *PeopleApp) setState(person string, state string, devices []*client.Hass
 	log.Debugln(entity)
 }
 func getDeviceID(person string) string {
-	return "sensor." + strings.ToLower(person) + "_presence"
+	return "device_tracker." + strings.ToLower(person) + "_presence"
 }
 func (a *PeopleApp) getHassDeviceState(devices []*client.HassEntity) string {
 	sortedDevices := devices
