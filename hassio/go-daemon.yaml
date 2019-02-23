@@ -1,0 +1,4 @@
+home_assistant:
+  ip: 'hassio'
+  ssl: false
+  token: ''
