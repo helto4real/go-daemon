@@ -1,4 +1,0 @@
-home_assistant:
-  ip: 'your_ip_here:8123'
-  ssl: false
-  token: 'homeasstant_token_here'

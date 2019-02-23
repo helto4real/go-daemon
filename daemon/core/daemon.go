@@ -68,7 +68,7 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant,
 	a.configPath = configPath
 	a.availableApps = availableApps
 
-	configuration := config.NewConfiguration(filepath.Join(configPath, "go-daemon.yaml"))
+	configuration := config.NewConfiguration(filepath.Join(configPath, "config", "go-daemon.yaml"))
 	conf, err := configuration.Open()
 
 	if err != nil {
