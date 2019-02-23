@@ -1,0 +1,18 @@
+home_assistant:
+  ip: 'your_ip_here:8123'           # Ip of your hass
+  ssl: false                        # Set to true if hass using ssl
+  token: 'homeasstant_token_here'   # Insert a long lived token here
+
+people:
+  thomas:                                   #Each person has an id
+    friendly_name: Thomas
+    devices:
+      - "device_tracker.thomas_phone_bt"    # The bluetooth tracker
+      - "device_tracker.thomas_phone_gps"   # The gps tracker
+      - "device_tracker.thomas_phone_wifi"  # The wifi (router) tracker
+  jean:
+    friendly_name: Jean
+    devices:
+      - "device_tracker.jeans_phone_bt"
+      - "device_tracker.jeans_phone_gps"
+      - "device_tracker.jeans_phone_wifi"

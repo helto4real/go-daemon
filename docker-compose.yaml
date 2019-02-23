@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  godaemon:
+    image: helto4real/my-go-daemon 
+    restart: always
+    volumes:
+      - /etc/opt/go-daemon/go-daemon.yaml:/example/go-daemon.yaml
+   
+      
