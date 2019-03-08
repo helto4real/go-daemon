@@ -228,6 +228,8 @@ func (a *PeopleApp) setState(person string, state string, devices []*client.Hass
 		homeLocation := a.deamon.GetLocation()
 		distance := distance(latitude, longitude, homeLocation.Latitude, homeLocation.Longitude, "K")
 		a.conf[person].Attributes["distance"] = math.Round(distance)
+
+		a.conf[person].Attributes["source_type"] = "gps"
 	}
 
 	deviceID := getDeviceID(person)
