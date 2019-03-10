@@ -3,6 +3,15 @@ home_assistant:
   ssl: false                        # Set to true if hass using ssl
   token: 'homeasstant_token_here'   # Insert a long lived token here
 
+settings:
+  tracking:
+    just_arrived_time: 300
+    just_left_time: 60
+    home_state: "Home"
+    just_left_state: "Just left"
+    just_arrived_state: "Just arrived"
+    away_state: "Away"
+
 people:
   thomas:                                   #Each person has an id
     friendly_name: Thomas
