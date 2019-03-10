@@ -1,0 +1,33 @@
+{
+    "log_level": "info",
+    "settings": {
+        "tracking": {
+            "just_arrived_time": 300,
+            "just_left_time": 60,
+            "home_state": "Home",
+            "just_left_state": "Just left",
+            "just_arrived_state": "Just arrived",
+            "away_state": "Away"
+        }
+    },
+    "persons": [
+        {
+            "id": "thomas",
+            "friendly_name": "Thomas",
+            "devices": [
+                "device_tracker.thomas_first_tracker",
+                "device_tracker.thomas_second_tracker",
+                "device_tracker.thomas_third_tracker"
+            ]
+        },
+        {
+            "id": "dawn",
+            "friendly_name": "Dawn",
+            "devices": [
+                "device_tracker.dawns_first_tracker",
+                "device_tracker.dawns_second_tracker",
+                "device_tracker.dawns_third_tracker"
+            ]
+        }
+    ]
+}

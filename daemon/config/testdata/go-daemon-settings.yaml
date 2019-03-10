@@ -1,0 +1,28 @@
+# Testfixture for config
+
+home_assistant:
+  ip: '192.168.0.100'
+  ssl: false
+  token: 'ABCDEFG1234567'
+
+settings:
+  tracking:
+    just_arrived_time: 300
+    just_left_time: 60
+    home_state: home
+    just_left_state: just_left
+    just_arrived_state: just_arrived
+    away_state: away
+people:
+  fred:
+    friendly_name: "Fred Flinta"
+    devices:
+      - "device_tracker.btdevice1"
+      - "device_tracker.gpsdevice1"
+      - "device_tracker.wifidevice1"
+  superman:
+    friendly_name: "Clark Kent"
+    devices:
+      - "device_tracker.btdevice2"
+      - "device_tracker.gpsdevice2"
+      - "device_tracker.wifidevice2"

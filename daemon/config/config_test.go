@@ -1,7 +1,9 @@
 package config_test
 
 import (
+	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"testing"
 
 	c "github.com/helto4real/go-daemon/daemon/config"
@@ -18,6 +20,27 @@ func TestOpen(t *testing.T) {
 	h.Equals(t, 2, len(config.People))
 	h.Equals(t, 3, len(config.People["fred"].Devices))
 
+	h.Equals(t, (*c.SettingsConfig)(nil), config.Settings)
+}
+
+func TestOpenWithSettings(t *testing.T) {
+	configuration := c.NewConfiguration("testdata/go-daemon-settings.yaml")
+	config, _ := configuration.Open()
+	h.Equals(t, "192.168.0.100", config.HomeAssistant.IP)
+	h.Equals(t, false, config.HomeAssistant.SSL)
+	h.Equals(t, "ABCDEFG1234567", config.HomeAssistant.Token)
+
+	h.Equals(t, 2, len(config.People))
+	h.Equals(t, 3, len(config.People["fred"].Devices))
+
+	h.NotEquals(t, nil, config.Settings)
+	h.NotEquals(t, nil, config.Settings.TrackingSettings)
+	h.Equals(t, 300, config.Settings.TrackingSettings.JustArrivedTime)
+	h.Equals(t, 60, config.Settings.TrackingSettings.JustLeftTime)
+	h.Equals(t, "home", config.Settings.TrackingSettings.HomeState)
+	h.Equals(t, "away", config.Settings.TrackingSettings.AwayState)
+	h.Equals(t, "just_arrived", config.Settings.TrackingSettings.JustArrivedState)
+	h.Equals(t, "just_left", config.Settings.TrackingSettings.JustLeftState)
 }
 
 func TestFailOpenConfigFile(t *testing.T) {
@@ -41,4 +64,24 @@ func TestOpenReaderFails(t *testing.T) {
 
 	h.Assert(t, err != nil, "Expected error!")
 
+}
+
+func TestHassioOptionsConfig(t *testing.T) {
+	options_json, _ := ioutil.ReadFile("testdata/options.json")
+	options := &c.HassioOptionsConfig{}
+	err := json.Unmarshal(options_json, options)
+	h.Assert(t, err == nil, "Error parsing options")
+	h.NotEquals(t, nil, options)
+	h.NotEquals(t, nil, options.Persons)
+	h.NotEquals(t, nil, options.Settings)
+
+	h.Equals(t, 2, len(options.Persons))
+	h.Equals(t, 3, len(options.Persons[0].Devices))
+
+	h.Equals(t, 300, options.Settings.TrackingSettings.JustArrivedTime)
+	h.Equals(t, 60, options.Settings.TrackingSettings.JustLeftTime)
+	h.Equals(t, "Home", options.Settings.TrackingSettings.HomeState)
+	h.Equals(t, "Away", options.Settings.TrackingSettings.AwayState)
+	h.Equals(t, "Just arrived", options.Settings.TrackingSettings.JustArrivedState)
+	h.Equals(t, "Just left", options.Settings.TrackingSettings.JustLeftState)
 }
