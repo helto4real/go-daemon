@@ -1,6 +1,6 @@
 FROM golang:alpine AS build
 
-ENV ADD_ON_VERSION 0.0.10
+ENV ADD_ON_VERSION 1.1.0
 #COPY . .
 RUN apk update && \
     apk add git  && \

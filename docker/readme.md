@@ -19,6 +19,16 @@ home_assistant:
 ## Better presence for people
 If you are using better presence config the persons different devices. Need atleast one gps device_tracker and one or preferable one of each of wifi/bluetooth trackers.
 ```yaml
+
+settings:
+  tracking:
+    just_arrived_time: 300                  # Default time from just arrived to home
+    just_left_time: 60                      # Default time from just left to away
+    home_state: "Home"                      # Default value for Home state
+    just_left_state: "Just left"            # Default value for Just left state
+    just_arrived_state: "Just arrived"      # Default value for Just arrived state
+    away_state: "Away"                      # Default value for Away state
+
 people:
   thomas:                                   #Each person has an id
     friendly_name: Thomas
