@@ -17,7 +17,7 @@ type HassioOptionTrackerStatesConfig struct {
 
 // HassioOptionSettingsConfig let you tweak the settings of the daemon
 type HassioOptionSettingsConfig struct {
-	TrackingSettings HassioOptionTrackerStatesConfig `json:"tracking"`
+	TrackingSettings *HassioOptionTrackerStatesConfig `json:"tracking"`
 }
 
 type HassioOptionPerson struct {

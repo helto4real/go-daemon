@@ -186,7 +186,8 @@ func TestInitializeJustArrivedJustLeftGoBackToState(t *testing.T) {
 	app := PeopleApp{}
 	fake := newFakeDaemonHelperTestCase("testcase4.yml")
 	// Set the timer to a zero value
-	justTimer = 0
+	fake.timeChangedState = 0
+
 	app.Initialize(fake, d.DeamonAppConfig{
 		App:        "fake_app",
 		Properties: make(map[string]string),
@@ -256,6 +257,7 @@ type fakeDaemonAppHelper struct {
 	listenState      int
 	getEntity        int
 	setEntity        int
+	timeChangedState int
 	fakePeopleConfig map[string]*config.PeopleConfig
 	fakeDevices      map[string]*client.HassEntity
 	confMutex        *sync.Mutex
@@ -266,6 +268,7 @@ func newFakeDaemonHelper() *fakeDaemonAppHelper {
 		fakePeopleConfig: map[string]*config.PeopleConfig{},
 		fakeDevices:      map[string]*client.HassEntity{},
 		confMutex:        &sync.Mutex{},
+		timeChangedState: 300,
 	}
 
 	return returnVal
@@ -276,6 +279,7 @@ func newFakeDaemonHelperTestCase(filename string) *fakeDaemonAppHelper {
 		fakePeopleConfig: map[string]*config.PeopleConfig{},
 		fakeDevices:      map[string]*client.HassEntity{},
 		confMutex:        &sync.Mutex{},
+		timeChangedState: 300,
 	}
 
 	returnVal.loadTestCase(filename)
@@ -354,6 +358,19 @@ func (a *fakeDaemonAppHelper) GetPeople() map[string]*config.PeopleConfig {
 	}
 
 	return nil
+}
+
+func (a *fakeDaemonAppHelper) GetSettings() *config.SettingsConfig {
+	return &config.SettingsConfig{
+		TrackingSettings: &config.TrackingStateSettingsConfig{
+			JustArrivedTime:  a.timeChangedState,
+			JustLeftTime:     a.timeChangedState,
+			HomeState:        "Home",
+			JustArrivedState: "Just arrived",
+			JustLeftState:    "Just left",
+			AwayState:        "Away",
+		},
+	}
 }
 
 func (a *fakeDaemonAppHelper) GetLocation() d.Location {

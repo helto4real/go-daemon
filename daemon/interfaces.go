@@ -59,6 +59,9 @@ type DaemonAppHelper interface {
 	// GetPeople returns the configuration of people and their devices
 	GetPeople() map[string]*config.PeopleConfig
 
+	// GetSettings returns the settings for the deamon
+	GetSettings() *config.SettingsConfig
+
 	// GetLocation returns the home location of the hass instance
 	GetLocation() Location
 }

@@ -25,7 +25,7 @@ type TrackingStateSettingsConfig struct {
 
 // SettingsConfig let you tweak the settings of the daemon
 type SettingsConfig struct {
-	TrackingSettings TrackingStateSettingsConfig `yaml:"tracking"`
+	TrackingSettings *TrackingStateSettingsConfig `yaml:"tracking"`
 }
 
 // PeopleConfig is the configuration for the Home Assistant platform integration

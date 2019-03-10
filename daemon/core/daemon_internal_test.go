@@ -164,6 +164,51 @@ func TestCheckHassioOptionsConfigLogLevels(t *testing.T) {
 	h.Equals(t, logrus.GetLevel(), logrus.FatalLevel)
 }
 
+func TestCheckHassioOptionsDefaultValues(t *testing.T) {
+	oldOptionsPath := optionsPath
+	defer func() { optionsPath = oldOptionsPath }()
+
+	daemon := ApplicationDaemon{
+		stateListeners: map[string][]chan client.HassEntity{
+			"light.testentity": []chan client.HassEntity{
+				make(chan client.HassEntity, 1)}},
+		cancelContext: context.Background(),
+		config:        &config.Config{}}
+
+	optionsPath = "testdata/options/options-default-values.json"
+	daemon.setDefaultSettings()
+	daemon.checkHassioOptionsConfig()
+
+	h.Equals(t, 300, daemon.config.Settings.TrackingSettings.JustArrivedTime)
+	h.Equals(t, 60, daemon.config.Settings.TrackingSettings.JustLeftTime)
+	h.Equals(t, "Home", daemon.config.Settings.TrackingSettings.HomeState)
+	h.Equals(t, "Away", daemon.config.Settings.TrackingSettings.AwayState)
+	h.Equals(t, "Just arrived", daemon.config.Settings.TrackingSettings.JustArrivedState)
+	h.Equals(t, "Just left", daemon.config.Settings.TrackingSettings.JustLeftState)
+}
+
+func TestCheckHassioOptionsTracking(t *testing.T) {
+	oldOptionsPath := optionsPath
+	defer func() { optionsPath = oldOptionsPath }()
+
+	daemon := ApplicationDaemon{
+		stateListeners: map[string][]chan client.HassEntity{
+			"light.testentity": []chan client.HassEntity{
+				make(chan client.HassEntity, 1)}},
+		cancelContext: context.Background(),
+		config:        &config.Config{}}
+
+	optionsPath = "testdata/options/options-tracking.json"
+	daemon.setDefaultSettings()
+	daemon.checkHassioOptionsConfig()
+
+	h.Equals(t, 301, daemon.config.Settings.TrackingSettings.JustArrivedTime)
+	h.Equals(t, 61, daemon.config.Settings.TrackingSettings.JustLeftTime)
+	h.Equals(t, "home", daemon.config.Settings.TrackingSettings.HomeState)
+	h.Equals(t, "away", daemon.config.Settings.TrackingSettings.AwayState)
+	h.Equals(t, "just_arrived", daemon.config.Settings.TrackingSettings.JustArrivedState)
+	h.Equals(t, "just_left", daemon.config.Settings.TrackingSettings.JustLeftState)
+}
 func TestListenCallServiceEvent(t *testing.T) {
 	daemon := NewApplicationDaemon()
 	callServiceEvent := make(chan client.HassCallServiceEvent, 2)

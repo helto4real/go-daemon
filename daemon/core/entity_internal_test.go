@@ -173,6 +173,19 @@ func (a *fakeDaemonAppHelper) GetPeople() map[string]*config.PeopleConfig {
 	return nil
 }
 
+func (a *fakeDaemonAppHelper) GetSettings() *config.SettingsConfig {
+	return &config.SettingsConfig{
+		TrackingSettings: &config.TrackingStateSettingsConfig{
+			JustArrivedTime:  300,
+			JustLeftTime:     60,
+			HomeState:        "Home",
+			JustArrivedState: "Just arrived",
+			JustLeftState:    "Just left",
+			AwayState:        "Away",
+		},
+	}
+}
+
 func (a *fakeDaemonAppHelper) GetLocation() d.Location {
 	return d.Location{
 		Longitude: 1.0,

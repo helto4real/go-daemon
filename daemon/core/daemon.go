@@ -76,6 +76,9 @@ func (a *ApplicationDaemon) Start(configPath string, hassClient c.HomeAssistant,
 		return false
 	}
 	a.config = conf
+
+	a.setDefaultSettings()
+
 	if a.config.HomeAssistant.IP == "hassio" {
 		// It is a hassio plugin
 		a.checkHassioOptionsConfig()
@@ -104,6 +107,42 @@ func (a *ApplicationDaemon) Stop() {
 
 var optionsPath = "/data/options.json"
 
+func (a *ApplicationDaemon) setDefaultSettings() {
+	if a.config.Settings == nil {
+		a.config.Settings = &config.SettingsConfig{}
+	}
+	if a.config.Settings.TrackingSettings == nil {
+		// Default tracker state settings
+		a.config.Settings.TrackingSettings = &config.TrackingStateSettingsConfig{
+			JustArrivedTime:  300,
+			JustLeftTime:     60,
+			HomeState:        "Home",
+			JustLeftState:    "Just left",
+			JustArrivedState: "Just arrived",
+			AwayState:        "Away",
+		}
+	} else {
+		if a.config.Settings.TrackingSettings.JustArrivedTime == 0 {
+			a.config.Settings.TrackingSettings.JustArrivedTime = 300
+		}
+		if a.config.Settings.TrackingSettings.JustLeftTime == 0 {
+			a.config.Settings.TrackingSettings.JustLeftTime = 60
+		}
+		if a.config.Settings.TrackingSettings.HomeState == "" {
+			a.config.Settings.TrackingSettings.HomeState = "Home"
+		}
+		if a.config.Settings.TrackingSettings.JustLeftState == "" {
+			a.config.Settings.TrackingSettings.JustLeftState = "Just left"
+		}
+		if a.config.Settings.TrackingSettings.JustArrivedState == "" {
+			a.config.Settings.TrackingSettings.JustArrivedState = "Just arrived"
+		}
+		if a.config.Settings.TrackingSettings.AwayState == "" {
+			a.config.Settings.TrackingSettings.AwayState = "Away"
+		}
+	}
+
+}
 func (a *ApplicationDaemon) checkHassioOptionsConfig() {
 
 	confBytes, err := ioutil.ReadFile(fmt.Sprintf(optionsPath))
@@ -123,6 +162,28 @@ func (a *ApplicationDaemon) checkHassioOptionsConfig() {
 			FriendlyName: person.FriendlyName,
 			Devices:      person.Devices,
 			Attributes:   map[string]interface{}{},
+		}
+	}
+
+	if result.Settings != nil && result.Settings.TrackingSettings != nil {
+
+		if result.Settings.TrackingSettings.JustArrivedTime != 0 {
+			a.config.Settings.TrackingSettings.JustArrivedTime = result.Settings.TrackingSettings.JustArrivedTime
+		}
+		if result.Settings.TrackingSettings.JustLeftTime != 0 {
+			a.config.Settings.TrackingSettings.JustLeftTime = result.Settings.TrackingSettings.JustLeftTime
+		}
+		if result.Settings.TrackingSettings.HomeState != "" {
+			a.config.Settings.TrackingSettings.HomeState = result.Settings.TrackingSettings.HomeState
+		}
+		if result.Settings.TrackingSettings.JustLeftState != "" {
+			a.config.Settings.TrackingSettings.JustLeftState = result.Settings.TrackingSettings.JustLeftState
+		}
+		if result.Settings.TrackingSettings.JustArrivedState != "" {
+			a.config.Settings.TrackingSettings.JustArrivedState = result.Settings.TrackingSettings.JustArrivedState
+		}
+		if result.Settings.TrackingSettings.AwayState != "" {
+			a.config.Settings.TrackingSettings.AwayState = result.Settings.TrackingSettings.AwayState
 		}
 	}
 	// Set the correct logger level
@@ -332,6 +393,10 @@ func (a *ApplicationDaemon) GetPeople() map[string]*config.PeopleConfig {
 
 	}
 	return a.config.People
+}
+
+func (a *ApplicationDaemon) GetSettings() *config.SettingsConfig {
+	return a.config.Settings
 }
 
 func (a *ApplicationDaemon) NewDaemonApp(appName string) (d.DaemonApplication, bool) {

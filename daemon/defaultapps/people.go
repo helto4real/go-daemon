@@ -24,15 +24,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	justArrivedState string = "Just arrived"
-	justLeftState    string = "Just left"
-	homeState        string = "Home"
-	awayState        string = "Away"
-)
-
-var justTimer time.Duration = 300 //5 minutes
-
 type personState struct {
 	state      string
 	attributes map[string]interface{}
@@ -50,6 +41,7 @@ func newState(state string) *personState {
 type PeopleApp struct {
 	deamon        d.DaemonAppHelper
 	conf          map[string]*c.PeopleConfig
+	settings      *c.SettingsConfig
 	cancel        context.CancelFunc
 	cancelContext context.Context
 	timer         *time.Timer
@@ -66,6 +58,7 @@ func (a *PeopleApp) Initialize(helper d.DaemonAppHelper, config d.DeamonAppConfi
 	// Save the daemon helper and config to variables for later use
 	a.deamon = helper
 	a.conf = helper.GetPeople()
+	a.settings = helper.GetSettings()
 
 	// Make a cancelation context to use when the application need to close
 	ctx, cancel := context.WithCancel(context.Background())
@@ -124,7 +117,7 @@ func (a *PeopleApp) handleUpdatedDeviceForPerson(person string, isFromTimeout bo
 	if state != "home" {
 		if a.conf[person].State == "" {
 			a.setState(person, state, devices)
-		} else if a.conf[person].State == justLeftState {
+		} else if a.conf[person].State == a.settings.TrackingSettings.JustLeftState {
 			if isFromTimeout {
 				a.setState(person, state, devices)
 			} else {
@@ -132,12 +125,12 @@ func (a *PeopleApp) handleUpdatedDeviceForPerson(person string, isFromTimeout bo
 				a.setState(person, a.conf[person].State, devices)
 			}
 
-		} else if a.conf[person].State == homeState {
+		} else if a.conf[person].State == a.settings.TrackingSettings.HomeState {
 			// We were home and just left
-			a.setState(person, justLeftState, devices)
+			a.setState(person, a.settings.TrackingSettings.JustLeftState, devices)
 
-			time.AfterFunc(time.Second*justTimer, func() {
-				if a.conf[person].State == justLeftState {
+			time.AfterFunc(time.Second*time.Duration(a.settings.TrackingSettings.JustLeftTime), func() {
+				if a.conf[person].State == a.settings.TrackingSettings.JustLeftState {
 					a.stateChangedChannel <- person
 				}
 			})
@@ -150,7 +143,7 @@ func (a *PeopleApp) handleUpdatedDeviceForPerson(person string, isFromTimeout bo
 
 		if a.conf[person].State == "" {
 			a.setState(person, state, devices)
-		} else if a.conf[person].State == justArrivedState {
+		} else if a.conf[person].State == a.settings.TrackingSettings.JustArrivedState {
 			if isFromTimeout {
 				a.setState(person, state, devices)
 			} else {
@@ -158,12 +151,12 @@ func (a *PeopleApp) handleUpdatedDeviceForPerson(person string, isFromTimeout bo
 				a.setState(person, a.conf[person].State, devices)
 
 			}
-		} else if a.conf[person].State != homeState {
+		} else if a.conf[person].State != a.settings.TrackingSettings.HomeState {
 			// We were home and just left
-			a.setState(person, justArrivedState, devices)
+			a.setState(person, a.settings.TrackingSettings.JustArrivedState, devices)
 
-			time.AfterFunc(time.Second*justTimer, func() {
-				if a.conf[person].State == justArrivedState {
+			time.AfterFunc(time.Second*time.Duration(a.settings.TrackingSettings.JustArrivedTime), func() {
+				if a.conf[person].State == a.settings.TrackingSettings.JustArrivedState {
 					a.stateChangedChannel <- person
 				}
 			})
@@ -177,9 +170,9 @@ func (a *PeopleApp) setState(person string, state string, devices []*client.Hass
 
 	var personState string
 	if state == "home" {
-		personState = homeState
+		personState = a.settings.TrackingSettings.HomeState
 	} else if state == "not_home" {
-		personState = awayState
+		personState = a.settings.TrackingSettings.AwayState
 	} else {
 		personState = state
 	}
