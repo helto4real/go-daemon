@@ -73,15 +73,15 @@ func TestHassioOptionsConfig(t *testing.T) {
 	h.Assert(t, err == nil, "Error parsing options")
 	h.NotEquals(t, nil, options)
 	h.NotEquals(t, nil, options.Persons)
-	h.NotEquals(t, nil, options.Settings)
+	h.NotEquals(t, nil, options.Tracking)
 
 	h.Equals(t, 2, len(options.Persons))
 	h.Equals(t, 3, len(options.Persons[0].Devices))
 
-	h.Equals(t, 300, options.Settings.TrackingSettings.JustArrivedTime)
-	h.Equals(t, 60, options.Settings.TrackingSettings.JustLeftTime)
-	h.Equals(t, "Home", options.Settings.TrackingSettings.HomeState)
-	h.Equals(t, "Away", options.Settings.TrackingSettings.AwayState)
-	h.Equals(t, "Just arrived", options.Settings.TrackingSettings.JustArrivedState)
-	h.Equals(t, "Just left", options.Settings.TrackingSettings.JustLeftState)
+	h.Equals(t, 300, options.Tracking.JustArrivedTime)
+	h.Equals(t, 60, options.Tracking.JustLeftTime)
+	h.Equals(t, "Home", options.Tracking.HomeState)
+	h.Equals(t, "Away", options.Tracking.AwayState)
+	h.Equals(t, "Just arrived", options.Tracking.JustArrivedState)
+	h.Equals(t, "Just left", options.Tracking.JustLeftState)
 }

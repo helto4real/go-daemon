@@ -1,9 +1,9 @@
 package config
 
 type HassioOptionsConfig struct {
-	LogLevel string                      `json:"log_level"`
-	Settings *HassioOptionSettingsConfig `json:"settings"`
-	Persons  []HassioOptionPerson        `json:"persons"`
+	LogLevel string                           `json:"log_level"`
+	Tracking *HassioOptionTrackerStatesConfig `json:"tracking"`
+	Persons  []HassioOptionPerson             `json:"persons"`
 }
 
 type HassioOptionTrackerStatesConfig struct {
@@ -13,11 +13,6 @@ type HassioOptionTrackerStatesConfig struct {
 	JustLeftState    string `json:"just_left_state"`
 	JustArrivedState string `json:"just_arrived_state"`
 	AwayState        string `json:"away_state"`
-}
-
-// HassioOptionSettingsConfig let you tweak the settings of the daemon
-type HassioOptionSettingsConfig struct {
-	TrackingSettings *HassioOptionTrackerStatesConfig `json:"tracking"`
 }
 
 type HassioOptionPerson struct {

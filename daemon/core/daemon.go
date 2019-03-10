@@ -165,25 +165,25 @@ func (a *ApplicationDaemon) checkHassioOptionsConfig() {
 		}
 	}
 
-	if result.Settings != nil && result.Settings.TrackingSettings != nil {
+	if result.Tracking != nil {
 
-		if result.Settings.TrackingSettings.JustArrivedTime != 0 {
-			a.config.Settings.TrackingSettings.JustArrivedTime = result.Settings.TrackingSettings.JustArrivedTime
+		if result.Tracking.JustArrivedTime != 0 {
+			a.config.Settings.TrackingSettings.JustArrivedTime = result.Tracking.JustArrivedTime
 		}
-		if result.Settings.TrackingSettings.JustLeftTime != 0 {
-			a.config.Settings.TrackingSettings.JustLeftTime = result.Settings.TrackingSettings.JustLeftTime
+		if result.Tracking.JustLeftTime != 0 {
+			a.config.Settings.TrackingSettings.JustLeftTime = result.Tracking.JustLeftTime
 		}
-		if result.Settings.TrackingSettings.HomeState != "" {
-			a.config.Settings.TrackingSettings.HomeState = result.Settings.TrackingSettings.HomeState
+		if result.Tracking.HomeState != "" {
+			a.config.Settings.TrackingSettings.HomeState = result.Tracking.HomeState
 		}
-		if result.Settings.TrackingSettings.JustLeftState != "" {
-			a.config.Settings.TrackingSettings.JustLeftState = result.Settings.TrackingSettings.JustLeftState
+		if result.Tracking.JustLeftState != "" {
+			a.config.Settings.TrackingSettings.JustLeftState = result.Tracking.JustLeftState
 		}
-		if result.Settings.TrackingSettings.JustArrivedState != "" {
-			a.config.Settings.TrackingSettings.JustArrivedState = result.Settings.TrackingSettings.JustArrivedState
+		if result.Tracking.JustArrivedState != "" {
+			a.config.Settings.TrackingSettings.JustArrivedState = result.Tracking.JustArrivedState
 		}
-		if result.Settings.TrackingSettings.AwayState != "" {
-			a.config.Settings.TrackingSettings.AwayState = result.Settings.TrackingSettings.AwayState
+		if result.Tracking.AwayState != "" {
+			a.config.Settings.TrackingSettings.AwayState = result.Tracking.AwayState
 		}
 	}
 	// Set the correct logger level

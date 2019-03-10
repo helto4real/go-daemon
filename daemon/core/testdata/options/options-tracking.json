@@ -1,14 +1,12 @@
 {
     "log_level": "info",
-    "settings": {
-        "tracking": {
-            "just_arrived_time": 301,
-            "just_left_time": 61,
-            "home_state": "home",
-            "just_left_state": "just_left",
-            "just_arrived_state": "just_arrived",
-            "away_state": "away"
-        }
+    "tracking": {
+        "just_arrived_time": 301,
+        "just_left_time": 61,
+        "home_state": "home",
+        "just_left_state": "just_left",
+        "just_arrived_state": "just_arrived",
+        "away_state": "away"
     },
     "persons": [
         {
