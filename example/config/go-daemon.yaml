@@ -1,25 +1,45 @@
 home_assistant:
-  ip: 'your_ip_here:8123'           # Ip of your hass
+  ip: '192.168.1.7:8123'           # Ip of your hass
   ssl: false                        # Set to true if hass using ssl
-  token: 'homeasstant_token_here'   # Insert a long lived token here
+  token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJjNTk5YjQxZDE3ODI0YTg5YmIxZmZhNDJhNjc4MjUzZSIsImlhdCI6MTU1MjIyNTU5MSwiZXhwIjoxODY3NTg1NTkxfQ.LoiOOY4Fq7e2phqEMiGH44nfpmWVJEoBrnSPC3ku9WQ'   # Insert a long lived token here
+
 settings:
   tracking:
     just_arrived_time: 300
     just_left_time: 60
-    home_state: "Home"
-    just_left_state: "Just left"
-    just_arrived_state: "Just arrived"
-    away_state: "Away"
+    home_state: "Hemma"
+    just_left_state: "Nyss åkt"
+    just_arrived_state: "Nyss anlänt"
+    away_state: "Borta"
+
 people:
-  thomas:                                   #Each person has an id
-    friendly_name: Thomas
+  tomas:                                   #Each person has an id
+    friendly_name: Tomas
     devices:
-      - "device_tracker.thomas_phone_bt"    # The bluetooth tracker
-      - "device_tracker.thomas_phone_gps"   # The gps tracker
-      - "device_tracker.thomas_phone_wifi"  # The wifi (router) tracker
-  jean:
-    friendly_name: Jean
+      - "sensor.tomas_phone_mqtt_bt"    # The bluetooth tracker
+      - "device_tracker.google_maps_118123190245690142371"   # The gps tracker
+      - "device_tracker.tomass8"  # The wifi (router) tracker
+  elin:                                   #Each person has an id
+    friendly_name: Elin
     devices:
-      - "device_tracker.jeans_phone_bt"
-      - "device_tracker.jeans_phone_gps"
-      - "device_tracker.jeans_phone_wifi"
+      - "sensor.elin_phone_mqtt_bt"    # The bluetooth tracker
+      - "device_tracker.google_maps_110786808112177763666"   # The gps tracker
+      - "device_tracker.elinss8"  # The wifi (router) tracker
+  melker:                                   #Each person has an id
+    friendly_name: Melker
+    devices:
+      - "sensor.melker_phone_mqtt_bt"    # The bluetooth tracker
+      - "device_tracker.google_maps_113728439587103002947"   # The gps tracker
+      - "device_tracker.samsunggalaxys7"  # The wifi (router) tracker
+  sally:                                   #Each person has an id
+    friendly_name: Sally
+    devices:
+      - "sensor.sally_phone_mqtt_bt"    # The bluetooth tracker
+      - "device_tracker.google_maps_115932713534918928318"   # The gps tracker
+      - "device_tracker.huawei_p20_pro2d36a29977"  # The wifi (router) tracker
+  # test:                                   #Each person has an id
+  #   friendly_name: Test
+  #   devices:
+  #     - "sensor.test_bt"    # The bluetooth tracker
+  #     - "device_tracker.gps_test"   # The gps tracker
+  #     - "device_tracker.elinss8_test"  # The wifi (router) tracker  
