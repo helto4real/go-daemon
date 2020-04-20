@@ -1,12 +1,10 @@
-version: '3'
+version: "3"
 
 services:
   godaemon:
-    image: helto4real/better-presence
+    image: joysoftware/better-presence
     build:
       context: .
     restart: always
     volumes:
       - /opt/go-daemon/config:/daemon/config
-
-
