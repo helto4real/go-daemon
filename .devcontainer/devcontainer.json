@@ -1,7 +1,7 @@
 {
   "name": "Go-Daemon Dev",
   "context": "..",
-  "image": "helto4real/devcontainer:go-0.0.3",
+  "dockerFile": "Dockerfile",
   "postCreateCommand": "go get -u -v github.com/helto4real/go-hassclient && go get -d -v ./... && go install -v ./...",
   "appPort": 9000,
   "extensions": [
@@ -12,8 +12,8 @@
     "--security-opt",
     "seccomp=unconfined"
   ],
-  "workspaceMount": "src=C:/projects/Go/src/github.com/helto4real/go-daemon,dst=/go/src/github.com/helto4real/go-daemon,type=bind",
-  "workspaceFolder": "/go/src/github.com/helto4real/go-daemon",
+  // "workspaceMount": "src=C:/projects/Go/src/github.com/helto4real/go-daemon,dst=/go/src/github.com/helto4real/go-daemon,type=bind",
+  // "workspaceFolder": "/go/src/github.com/helto4real/go-daemon",
   "settings": {
     "go.gopath": "/go:/workspaces",
     "go.inferGopath": true,
