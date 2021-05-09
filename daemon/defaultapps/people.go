@@ -269,8 +269,12 @@ func (a *PeopleApp) getHassDeviceState(devices []*client.HassEntity) string {
 		// Return the gps device state
 		return translateState(gpsDevice.New.State)
 	}
-	// Just return the last changed device state
-	return translateState(sortedDevices[0].New.State)
+	if len(sortedDevices) > 0 {
+		// Just return the last changed device state
+		return translateState(sortedDevices[0].New.State)
+	} else {
+		return "not_home"
+	}
 }
 
 func getGpsSourceTypeDevice(devices []*client.HassEntity) *client.HassEntity {

@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine
+FROM golang:1.14-alpine
 # Avoid warnings by switching to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
 
